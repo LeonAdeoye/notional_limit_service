@@ -13,8 +13,6 @@
     <groupId>com.trading</groupId>
     <artifactId>notional-limit-service</artifactId>
     <version>1.0.0</version>
-    
-
 
     <properties>
         <java.version>11</java.version>
@@ -72,4 +70,14 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
 </project> 

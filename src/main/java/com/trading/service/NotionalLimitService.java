@@ -57,7 +57,9 @@ public class NotionalLimitService {
     private final OrderEventHandler orderEventHandler;
     
     // Disruptor components
+    @Autowired
     private Disruptor<OrderEvent> disruptor;
+    @Autowired
     private RingBuffer<OrderEvent> ringBuffer;
 
     /**
