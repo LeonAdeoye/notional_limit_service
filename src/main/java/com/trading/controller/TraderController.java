@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -29,15 +30,7 @@ public class TraderController {
     private static final Logger log = LoggerFactory.getLogger(TraderController.class);
     @Autowired
     private final TradingPersistenceService persistenceService;
-    
-    /**
-     * Creates a new trader.
-     * Validates desk assignment and ensures unique trader ID.
-     * 
-     * @param trader The trader to create
-     * @return The created trader with generated ID
-     * @throws IllegalArgumentException if trader exists or desk not found
-     */
+
     @PostMapping
     public ResponseEntity<Trader> createTrader(@Valid @RequestBody Trader trader) {
         String errorId = UUID.randomUUID().toString();
@@ -65,7 +58,7 @@ public class TraderController {
             Trader savedTrader = persistenceService.saveTrader(trader);
             log.info("Successfully created trader with ID: {} for desk: {}", 
                     savedTrader.getId(), savedTrader.getDeskId());
-            return ResponseEntity.ok(savedTrader);
+            return new ResponseEntity<Trader>(savedTrader, HttpStatus.CREATED);
         } catch (Exception e) {
             log.error("ERR-403: Unexpected error creating trader", e);
             return ResponseEntity.internalServerError().build();

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -28,22 +29,15 @@ import java.util.UUID;
 public class DeskController {
     private static final Logger log = LoggerFactory.getLogger(DeskController.class);
     @Autowired
-    private final TradingPersistenceService persistenceService;
-    
-    /**
-     * Creates a new trading desk.
-     * 
-     * @param desk The desk to create
-     * @return The created desk with generated ID
-     * @throws IllegalArgumentException if desk already exists
-     */
+    private final TradingPersistenceService tradingPersistenceService;
+
     @PostMapping
     public ResponseEntity<Desk> createDesk(@Valid @RequestBody Desk desk) {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
         
         try {
-            if (desk.getId() != null && persistenceService.deskExists(desk.getId())) {
+            if (desk.getId() != null && tradingPersistenceService.deskExists(desk.getId())) {
                 log.error("ERR-411: Desk already exists with ID: {}", desk.getId());
                 return ResponseEntity.badRequest().build();
             }
@@ -52,9 +46,9 @@ public class DeskController {
                 desk.setId(UUID.randomUUID());
             }
             
-            Desk savedDesk = persistenceService.saveDesk(desk);
+            Desk savedDesk = tradingPersistenceService.saveDesk(desk);
             log.info("Successfully created desk with ID: {}", savedDesk.getId());
-            return ResponseEntity.ok(savedDesk);
+            return new ResponseEntity<>(savedDesk, HttpStatus.CREATED);
         } catch (Exception e) {
             log.error("ERR-412: Unexpected error creating desk", e);
             return ResponseEntity.internalServerError().build();
@@ -69,7 +63,7 @@ public class DeskController {
         MDC.put("errorId", errorId);
         
         try {
-            Desk desk = persistenceService.getDesk(id);
+            Desk desk = tradingPersistenceService.getDesk(id);
             if (desk == null) {
                 log.error("ERR-413: Desk not found with ID: {}", id);
                 return ResponseEntity.notFound().build();
@@ -89,7 +83,7 @@ public class DeskController {
         MDC.put("errorId", errorId);
         
         try {
-            return ResponseEntity.ok(persistenceService.getAllDesks());
+            return ResponseEntity.ok(tradingPersistenceService.getAllDesks());
         } catch (Exception e) {
             log.error("ERR-415: Error retrieving all desks", e);
             return ResponseEntity.internalServerError().build();
@@ -104,15 +98,15 @@ public class DeskController {
         MDC.put("errorId", errorId);
         
         try {
-            if (!persistenceService.deskExists(id)) {
+            if (!tradingPersistenceService.deskExists(id)) {
                 log.error("ERR-416: Desk not found for deletion: {}", id);
                 return ResponseEntity.notFound().build();
             }
-            if (persistenceService.hasTradersForDesk(id)) {
+            if (tradingPersistenceService.hasTradersForDesk(id)) {
                 log.error("ERR-417: Cannot delete desk with ID: {} as it has associated traders", id);
                 return ResponseEntity.badRequest().build();
             }
-            persistenceService.deleteDesk(id);
+            tradingPersistenceService.deleteDesk(id);
             log.info("Successfully deleted desk: {}", id);
             return ResponseEntity.ok().build();
         } catch (Exception e) {

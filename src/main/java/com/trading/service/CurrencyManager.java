@@ -5,21 +5,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
 import javax.annotation.PostConstruct;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import com.trading.model.Currency;
 
 @Service
 @RequiredArgsConstructor
 public class CurrencyManager {
     private static final Logger log = LoggerFactory.getLogger(CurrencyManager.class);
-    
-    // Cache of currency pair rates
     private final Map<Currency, Double> fxRates = new ConcurrentHashMap<>();
-    
+
     @PostConstruct
     public void initialize() {
         log.info("Initializing currency manager and loading FX rates");
@@ -30,7 +26,7 @@ public class CurrencyManager {
     public void refreshFxRates() {
         try {
             updateRate(Currency.EUR, 1.18);
-            updateRate(Currency.GBP, 1.25);
+            updateRate(Currency.GBP, 1.40);
             updateRate(Currency.JPY, 0.0091);
             updateRate(Currency.HKD, 0.13);
             updateRate(Currency.SGD, 0.74);

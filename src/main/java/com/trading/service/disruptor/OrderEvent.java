@@ -4,10 +4,6 @@ import com.trading.model.Order;
 import lombok.Data;
 import org.springframework.stereotype.Component;
 
-/**
- * Event class for the LMAX Disruptor that holds order information and context.
- * This class represents the data that flows through the Disruptor ring buffer.
- */
 @Component
 @Data
 public class OrderEvent {

@@ -27,17 +27,12 @@ import java.util.concurrent.ThreadFactory;
 @RequiredArgsConstructor
 public class NotionalLimitService {
     private static final Logger log = LoggerFactory.getLogger(NotionalLimitService.class);
-    
     @Value("${app.disruptor.buffer-size:1024}")
     private int bufferSize=1024;
-    
     @Autowired
     private final OrderEventFactory orderEventFactory;
-    
     @Autowired
     private final OrderEventHandler orderEventHandler;
-    
-    // Disruptor components
     @Autowired
     private Disruptor<OrderEvent> disruptor;
     @Autowired
@@ -103,7 +98,7 @@ public class NotionalLimitService {
      * Validates basic order properties before processing.
      * returns true if the order is valid, false otherwise.
      */
-    private boolean isValidOrder(Order order) {
+    private static boolean isValidOrder(Order order) {
         if (order.getQuantity() <= 0)
             return false;
         if (order.getPrice() <= 0)

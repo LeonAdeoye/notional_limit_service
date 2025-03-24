@@ -28,27 +28,21 @@ public class LimitController {
     private static final Logger log = LoggerFactory.getLogger(LimitController.class);
     @Autowired
     private final TradingPersistenceService persistenceService;
-    
-    /**
-     * Retrieves current limits for a desk.
-     * 
-     * @param id The desk ID
-     * @return Current buy, sell, and gross limits for the desk
-     */
+
     @GetMapping("/desk/{id}")
-    public ResponseEntity<DeskLimits> getDeskLimits(@NotNull @PathVariable UUID id) {
+    public ResponseEntity<DeskLimits> getDeskLimits(@NotNull @PathVariable UUID deskLimitsId) {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
         
         try {
-            com.trading.model.DeskLimits limits = persistenceService.getLimits(id);
-            if (limits == null) {
-                log.error("ERR-421: Limits not found for desk: {}", id);
+            DeskLimits deskLimits = persistenceService.getLimits(deskLimitsId);
+            if (deskLimits == null) {
+                log.error("ERR-421: Limits not found for desk: {}", deskLimitsId);
                 return ResponseEntity.notFound().build();
             }
-            return (ResponseEntity<DeskLimits>) ResponseEntity.ok(limits);
+            return ResponseEntity.ok(deskLimits);
         } catch (Exception e) {
-            log.error("ERR-422: Error retrieving desk limits: {}", id, e);
+            log.error("ERR-422: Error retrieving desk limits: {}", deskLimitsId, e);
             return ResponseEntity.internalServerError().build();
         } finally {
             MDC.remove("errorId");
@@ -57,33 +51,33 @@ public class LimitController {
     
     @PutMapping("/desk/{id}")
     public ResponseEntity<DeskLimits> updateDeskLimits(
-            @NotNull @PathVariable UUID id,
-            @Valid @RequestBody DeskLimits limits) {
+            @NotNull @PathVariable UUID deskId,
+            @Valid @RequestBody DeskLimits deskLimits) {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
         
         try {
             // Validate limits are positive
-            if (limits.getBuyNotionalLimit() <= 0 || 
-                limits.getSellNotionalLimit() <= 0 || 
-                limits.getGrossNotionalLimit() <= 0) {
-                log.error("ERR-427: Negative or zero limits not allowed for desk: {}", id);
+            if (deskLimits.getBuyNotionalLimit() <= 0 ||
+                deskLimits.getSellNotionalLimit() <= 0 ||
+                deskLimits.getGrossNotionalLimit() <= 0) {
+                log.error("ERR-427: Negative or zero limits not allowed for desk: {}", deskId);
                 return ResponseEntity.badRequest().build();
             }
 
-            if (!persistenceService.deskExists(id)) {
-                log.error("ERR-423: Desk not found for limit update: {}", id);
+            if (!persistenceService.deskExists(deskId)) {
+                log.error("ERR-423: Desk not found for limit update: {}", deskId);
                 return ResponseEntity.notFound().build();
             }
             
-            limits.setId(id);
-            limits.setDeskId(id);
+            deskLimits.setId(deskId);
+            deskLimits.setDeskId(deskId);
             try {
-                DeskLimits savedLimits = persistenceService.saveLimits(limits);
-                log.info("Successfully updated limits for desk: {}", id);
+                DeskLimits savedLimits = persistenceService.saveLimits(deskLimits);
+                log.info("Successfully updated limits for desk: {}", deskId);
                 return ResponseEntity.ok(savedLimits);
             } catch (Exception e) {
-                log.error("ERR-424: Error updating desk limits: {}", id, e.getMessage());
+                log.error("ERR-424: Error updating desk limits: {}", deskId, e.getMessage());
                 return ResponseEntity.internalServerError().build();
             }
         } finally {
