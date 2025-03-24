@@ -73,8 +73,7 @@ public class AmpsMessageProcessor implements MessageHandler {
                 log.error("ERR-008: Invalid message received: {}", validationResult.getErrorMessage());
                 return;
             }
-            
-            // If valid, process the order
+
             Order order = objectMapper.readValue(message.getData(), Order.class);
             log.info("Received valid order message: {}", order);
             notionalLimitService.processOrder(order);

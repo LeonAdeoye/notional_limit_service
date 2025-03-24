@@ -93,10 +93,10 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
     private void updateDeskLimits(Desk desk, TradeSide side, double notionalValueUSD) {
         if (side == TradeSide.BUY) {
             desk.setCurrentBuyNotional(desk.getCurrentBuyNotional() + notionalValueUSD);
-            log.debug("Updated buy notional for desk: {} to: {}", desk.getId(), desk.getCurrentBuyNotional());
+            log.debug("Updated buy notional for desk: {} to: {} using: {} USD", desk.getId(), desk.getCurrentBuyNotional(), notionalValueUSD);
         } else if (side == TradeSide.SELL) {
             desk.setCurrentSellNotional(desk.getCurrentSellNotional() + notionalValueUSD);
-            log.debug("Updated sell notional for desk: {} to: {}", desk.getId(), desk.getCurrentSellNotional());
+            log.debug("Updated sell notional for desk: {} to: {} using: {} USD", desk.getId(), desk.getCurrentSellNotional(), notionalValueUSD);
         }
     }
 

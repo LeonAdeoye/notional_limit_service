@@ -2,13 +2,7 @@ package com.trading.service;
 
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
-import com.trading.messaging.AmpsMessageProcessor;
-import com.trading.model.Desk;
 import com.trading.model.Order;
-import com.trading.model.TradeSide;
-import com.trading.model.Trader;
-import com.trading.repository.DeskRepository;
-import com.trading.repository.TraderRepository;
 import com.trading.service.disruptor.OrderEvent;
 import com.trading.service.disruptor.OrderEventFactory;
 import com.trading.service.disruptor.OrderEventHandler;
@@ -19,13 +13,9 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
@@ -40,15 +30,6 @@ public class NotionalLimitService {
     
     @Value("${app.disruptor.buffer-size:1024}")
     private int bufferSize=1024;
-    
-    @Autowired
-    private final TradingPersistenceService persistenceService;
-    
-    @Autowired
-    private final CurrencyManager currencyManager;
-    
-    @Autowired
-    private final AmpsMessageProcessor ampsMessageProcessor;
     
     @Autowired
     private final OrderEventFactory orderEventFactory;
@@ -100,10 +81,11 @@ public class NotionalLimitService {
         MDC.put("errorId", errorId);
         
         try {
-            // Validate order before publishing
-            validateOrder(order);
-            
-            // Publish order to ring buffer
+            if(!isValidOrder(order)) {
+                log.error("Invalid order: {}", order);
+                return;
+            }
+
             long sequence = ringBuffer.next();
             try {
                 OrderEvent event = ringBuffer.get(sequence);
@@ -119,50 +101,13 @@ public class NotionalLimitService {
     
     /**
      * Validates basic order properties before processing.
-     * @throws IllegalArgumentException if validation fails
+     * returns true if the order is valid, false otherwise.
      */
-    private void validateOrder(Order order) {
-        if (order.getQuantity() <= 0) {
-            throw new IllegalArgumentException("Invalid order quantity");
-        }
-        if (order.getPrice() <= 0) {
-            throw new IllegalArgumentException("Invalid order price");
-        }
-    }
-    
-    private double calculateUSDNotional(Order order) {
-        double localNotional = order.getNotionalValue();
-        double usdNotional = currencyManager.convertToUSD(localNotional, order.getCurrency());
-        log.debug("Converted notional value from {} {} to {} USD", 
-                localNotional, order.getCurrency(), usdNotional);
-        return usdNotional;
-    }
-    
-    private void updateDeskLimits(Desk desk, TradeSide side, double notionalValueUSD) {
-        if (side == TradeSide.BUY) {
-            desk.setCurrentBuyNotional(desk.getCurrentBuyNotional() + notionalValueUSD);
-            log.debug("Updated buy notional for desk: {} to: {}", desk.getId(), desk.getCurrentBuyNotional());
-        } else {
-            desk.setCurrentSellNotional(desk.getCurrentSellNotional() + notionalValueUSD);
-            log.debug("Updated sell notional for desk: {} to: {}", desk.getId(), desk.getCurrentSellNotional());
-        }
-    }
-    
-    private void checkLimitBreaches(Desk desk) {
-        if (desk.getBuyUtilizationPercentage() > 100) {
-            String message = String.format("ERR-004: Buy limit breached for desk: %s", desk.getId());
-            log.error(message);
-            ampsMessageProcessor.publishLimitBreach(message);
-        }
-        if (desk.getSellUtilizationPercentage() > 100) {
-            String message = String.format("ERR-005: Sell limit breached for desk: %s", desk.getId());
-            log.error(message);
-            ampsMessageProcessor.publishLimitBreach(message);
-        }
-        if (desk.getGrossUtilizationPercentage() > 100) {
-            String message = String.format("ERR-006: Gross limit breached for desk: %s", desk.getId());
-            log.error(message);
-            ampsMessageProcessor.publishLimitBreach(message);
-        }
+    private boolean isValidOrder(Order order) {
+        if (order.getQuantity() <= 0)
+            return false;
+        if (order.getPrice() <= 0)
+            return false;
+        return true;
     }
 } 

@@ -54,7 +54,6 @@ public class NotionalLimitManagementApplication implements CommandLineRunner {
             
         } catch (Exception e) {
             log.error("Failed to initialize Trading Application", e);
-            // Throw the exception to prevent the application from starting
             throw new RuntimeException("Application initialization failed", e);
         }
     }

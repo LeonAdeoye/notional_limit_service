@@ -13,10 +13,8 @@ import java.util.UUID;
 public class Trader {
     @Id
     private UUID id;
-    
     @NotBlank(message = "Trader name is required")
     private String name;
-    
     @NotNull(message = "Desk ID is required")
     private UUID deskId;
 } 
