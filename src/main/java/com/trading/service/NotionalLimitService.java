@@ -3,6 +3,7 @@ package com.trading.service;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.trading.model.Order;
+import com.trading.service.disruptor.DisruptorService;
 import com.trading.service.disruptor.OrderEvent;
 import com.trading.service.disruptor.OrderEventFactory;
 import com.trading.service.disruptor.OrderEventHandler;
@@ -34,43 +35,18 @@ public class NotionalLimitService {
     @Autowired
     private final OrderEventHandler orderEventHandler;
     @Autowired
-    private Disruptor<OrderEvent> disruptor;
-    @Autowired
-    private RingBuffer<OrderEvent> ringBuffer;
+    DisruptorService disruptorService;
 
-    /**
-     * Initializes the Disruptor with a single event handler.
-     * Called automatically after bean construction.
-     */
     @PostConstruct
     public void initialize() {
-        ThreadFactory threadFactory = Executors.defaultThreadFactory();
-        
-        disruptor = new Disruptor<>(
-            orderEventFactory,
-            bufferSize,
-            threadFactory
-        );
-        
-        disruptor.handleEventsWith(orderEventHandler);
-        ringBuffer = disruptor.start();
+        disruptorService.start("NotionalLimitService", orderEventHandler);
     }
 
-    /**
-     * Shuts down the Disruptor gracefully.
-     * Called automatically before bean destruction.
-     */
     @PreDestroy
     public void shutdown() {
-        if (disruptor != null) {
-            disruptor.shutdown();
-        }
+        disruptorService.stop();
     }
 
-    /**
-     * Entry point for processing orders.
-     * Validates order and publishes to Disruptor ring buffer.
-     */
     public void processOrder(Order order) {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
@@ -80,24 +56,12 @@ public class NotionalLimitService {
                 log.error("Invalid order: {}", order);
                 return;
             }
-
-            long sequence = ringBuffer.next();
-            try {
-                OrderEvent event = ringBuffer.get(sequence);
-                event.setOrder(order);
-                event.setErrorId(errorId);
-            } finally {
-                ringBuffer.publish(sequence);
-            }
+            disruptorService.push(order);
         } finally {
             MDC.remove("errorId");
         }
     }
     
-    /**
-     * Validates basic order properties before processing.
-     * returns true if the order is valid, false otherwise.
-     */
     private static boolean isValidOrder(Order order) {
         if (order.getQuantity() <= 0)
             return false;

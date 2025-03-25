@@ -44,9 +44,8 @@ public class TestConfig {
     @Primary
     public OrderEventHandler testOrderEventHandler(
             TradingPersistenceService persistenceService,
-            CurrencyManager currencyManager,
-            AmpsMessageProcessor ampsMessageProcessor) {
-        return new OrderEventHandler(persistenceService, currencyManager, ampsMessageProcessor);
+            CurrencyManager currencyManager) {
+        return new OrderEventHandler(persistenceService, currencyManager, Mockito.mock(AmpsMessageProcessor.class));
     }
 
     @Bean
