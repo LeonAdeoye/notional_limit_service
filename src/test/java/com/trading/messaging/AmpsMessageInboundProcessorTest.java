@@ -2,7 +2,6 @@ package com.trading.messaging;
 
 import com.crankuptheamps.client.Client;
 import com.crankuptheamps.client.Message;
-import com.crankuptheamps.client.exception.AMPSException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trading.model.Currency;

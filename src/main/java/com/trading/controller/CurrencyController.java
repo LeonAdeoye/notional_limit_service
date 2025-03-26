@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 import org.slf4j.MDC;
 import java.util.Map;
 import java.util.UUID;
-
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.trading.model.Currency;
