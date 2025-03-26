@@ -28,7 +28,10 @@ public class Desk {
     
     private double currentBuyNotional;
     private double currentSellNotional;
-    
+
+    public Desk(UUID id, String test_desk) {
+    }
+
     public double getCurrentGrossNotional() {
         return currentBuyNotional + currentSellNotional;
     }

@@ -47,12 +47,8 @@ class TradingPersistenceServiceTest {
         deskId = UUID.randomUUID();
         traderId = UUID.randomUUID();
         
-        testDesk = new Desk();
-        testDesk.setId(deskId);
-        testDesk.setName("Test Desk");
-
+        testDesk = new Desk(deskId, "Test Desk");
         testTrader = new Trader(traderId, "Test Trader", deskId);
-
         testLimits = new DeskLimits(deskId, deskId, 1000000, 1000000, 2000000);
     }
 
@@ -165,6 +161,7 @@ class TradingPersistenceServiceTest {
         // Arrange
         UUID id = UUID.randomUUID();
         DeskLimits testLimits = new DeskLimits(id, id, 0,0,0);
+        Desk testDesk = new Desk(id, "Test Desk");
         when(limitsRepository.save(testLimits)).thenReturn(testLimits);
         when(deskRepository.save(testDesk)).thenReturn(testDesk);
         // Act

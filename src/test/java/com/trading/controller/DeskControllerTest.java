@@ -38,9 +38,7 @@ class DeskControllerTest {
     void setUp() {
         // Arrange
         deskId = UUID.randomUUID();
-        testDesk = new Desk();
-        testDesk.setId(deskId);
-        testDesk.setName("Test Desk");
+        testDesk = new Desk(deskId, "Test Desk");
     }
 
     /**
