@@ -37,12 +37,7 @@ class LimitControllerTest {
     void setUp() {
         // Arrange
         deskId = UUID.randomUUID();
-        testLimits = new DeskLimits();
-        testLimits.setId(deskId);
-        testLimits.setDeskId(deskId);
-        testLimits.setBuyNotionalLimit(1000000);
-        testLimits.setSellNotionalLimit(1000000);
-        testLimits.setGrossNotionalLimit(2000000);
+        testLimits = new DeskLimits(deskId, deskId, 1000000, 1000000, 2000000);
     }
 
     /**
@@ -175,10 +170,7 @@ class LimitControllerTest {
     void updateDeskLimits_WithNegativeLimits_ReturnsBadRequest() {
         // Arrange
         UUID deskId = UUID.randomUUID();
-        DeskLimits testLimits = new DeskLimits();
-        testLimits.setBuyNotionalLimit(-1000000.0);
-        testLimits.setSellNotionalLimit(1000000.0);
-        testLimits.setGrossNotionalLimit(2000000.0);
+        DeskLimits testLimits = new DeskLimits(deskId, deskId, -1000000, 1000000, 2000000);
 
         // Act
         ResponseEntity<DeskLimits> response = controller.updateDeskLimits(deskId, testLimits);
@@ -199,10 +191,7 @@ class LimitControllerTest {
     void updateDeskLimits_WithZeroLimits_ReturnsBadRequest() {
         // Arrange
         UUID deskId = UUID.randomUUID();
-        DeskLimits testLimits = new DeskLimits();
-        testLimits.setBuyNotionalLimit(0.0);
-        testLimits.setSellNotionalLimit(1000000.0);
-        testLimits.setGrossNotionalLimit(2000000.0);
+        DeskLimits testLimits = new DeskLimits(deskId, deskId, 0, 1000000, 2000000);
 
         // Act
         ResponseEntity<DeskLimits> response = controller.updateDeskLimits(deskId, testLimits);

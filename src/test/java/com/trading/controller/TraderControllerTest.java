@@ -36,10 +36,7 @@ class TraderControllerTest {
         // Arrange
         traderId = UUID.randomUUID();
         deskId = UUID.randomUUID();
-        testTrader = new Trader();
-        testTrader.setId(traderId);
-        testTrader.setDeskId(deskId);
-        testTrader.setName("Test Trader");
+        testTrader = new Trader(traderId, "Test Trader", deskId);
     }
 
     @Test

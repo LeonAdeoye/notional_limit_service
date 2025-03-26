@@ -63,9 +63,9 @@ public class NotionalLimitService {
     }
     
     private static boolean isValidOrder(Order order) {
-        if (order.getQuantity() <= 0)
+        if (order.quantity() <= 0)
             return false;
-        if (order.getPrice() <= 0)
+        if (order.price() <= 0)
             return false;
         return true;
     }

@@ -53,18 +53,18 @@ public class TradingPersistenceService {
             // Load all traders
             List<Trader> traders = traderRepository.findAll();
             traderCache.clear();
-            traders.forEach(trader -> traderCache.put(trader.getId(), trader));
+            traders.forEach(trader -> traderCache.put(trader.id(), trader));
             
             // Group traders by desk
             deskTradersCache.clear();
             deskTradersCache.putAll(traders.stream()
-                .collect(Collectors.groupingBy(Trader::getDeskId)));
+                .collect(Collectors.groupingBy(Trader::deskId)));
             log.info("Loaded {} traders into cache", traders.size());
             
             // Load all limits
             List<DeskLimits> limits = limitsRepository.findAll();
             limitsCache.clear();
-            limits.forEach(limit -> limitsCache.put(limit.getDeskId(), limit));
+            limits.forEach(limit -> limitsCache.put(limit.deskId(), limit));
             log.info("Loaded {} desk limits into cache", limits.size());
             
         } catch (Exception e) {
@@ -80,15 +80,9 @@ public class TradingPersistenceService {
             deskCache.put(savedDesk.getId(), savedDesk);
             
             // Initialize limits if they don't exist
-            if (!limitsExist(savedDesk.getId())) {
-                DeskLimits limits = new DeskLimits();
-                limits.setId(savedDesk.getId());
-                limits.setDeskId(savedDesk.getId());
-                limits.setBuyNotionalLimit(desk.getBuyNotionalLimit());
-                limits.setSellNotionalLimit(desk.getSellNotionalLimit());
-                limits.setGrossNotionalLimit(desk.getGrossNotionalLimit());
-                saveLimits(limits);
-            }
+            if (!limitsExist(savedDesk.getId()))
+                saveLimits(new DeskLimits(savedDesk.getId(), savedDesk.getId(), desk.getBuyNotionalLimit(),
+                        desk.getSellNotionalLimit(), desk.getGrossNotionalLimit()));
             
             log.info("Saved desk with ID: {} to MongoDB and cache", savedDesk.getId());
             return savedDesk;
@@ -102,16 +96,16 @@ public class TradingPersistenceService {
     public Trader saveTrader(Trader trader) {
         try {
             Trader savedTrader = traderRepository.save(trader);
-            traderCache.put(savedTrader.getId(), savedTrader);
+            traderCache.put(savedTrader.id(), savedTrader);
             
             // Update desk-traders cache
-            deskTradersCache.computeIfAbsent(savedTrader.getDeskId(), k -> new java.util.ArrayList<>())
+            deskTradersCache.computeIfAbsent(savedTrader.deskId(), k -> new java.util.ArrayList<>())
                 .add(savedTrader);
             
-            log.info("Saved trader with ID: {} to MongoDB and cache", savedTrader.getId());
+            log.info("Saved trader with ID: {} to MongoDB and cache", savedTrader.id());
             return savedTrader;
         } catch (Exception e) {
-            log.error("ERR-203: Failed to save trader: {}", trader.getId(), e);
+            log.error("ERR-203: Failed to save trader: {}", trader.id(), e);
             throw e;
         }
     }
@@ -135,8 +129,8 @@ public class TradingPersistenceService {
         try {
             Trader trader = traderCache.get(traderId);
             if (trader != null) {
-                deskTradersCache.getOrDefault(trader.getDeskId(), new java.util.ArrayList<>())
-                    .removeIf(t -> t.getId().equals(traderId));
+                deskTradersCache.getOrDefault(trader.deskId(), new java.util.ArrayList<>())
+                    .removeIf(t -> t.id().equals(traderId));
             }
             
             traderRepository.deleteById(traderId);
@@ -180,11 +174,11 @@ public class TradingPersistenceService {
     public DeskLimits saveLimits(DeskLimits limits) {
         try {
             DeskLimits savedLimits = limitsRepository.save(limits);
-            limitsCache.put(savedLimits.getDeskId(), savedLimits);
-            log.info("Saved limits for desk ID: {} to MongoDB and cache", savedLimits.getDeskId());
+            limitsCache.put(savedLimits.deskId(), savedLimits);
+            log.info("Saved limits for desk ID: {} to MongoDB and cache", savedLimits.deskId());
             return savedLimits;
         } catch (Exception e) {
-            log.error("ERR-206: Failed to save limits for desk: {}", limits.getDeskId(), e);
+            log.error("ERR-206: Failed to save limits for desk: {}", limits.deskId(), e);
             throw e;
         }
     }

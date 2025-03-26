@@ -66,15 +66,9 @@ class AmpsMessageProcessorTest {
     @BeforeEach
     void setUp() {
         // Arrange
-        testOrder = new Order();
-        testOrder.setTraderId(UUID.randomUUID());
-        testOrder.setSymbol("AAPL");
-        testOrder.setQuantity(100);
-        testOrder.setPrice(150.0);
-        testOrder.setSide(TradeSide.BUY);
-        testOrder.setCurrency(Currency.USD);
-        testOrder.setTradeDate(LocalDate.now());
-
+        UUID traderId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+        testOrder = new Order(orderId, traderId, "AAPL", 100, 150.0, TradeSide.BUY, Currency.USD, LocalDate.now());
         validMessageData = "{\"valid\":\"json\"}";
     }
 

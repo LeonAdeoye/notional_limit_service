@@ -56,27 +56,27 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
      */
     private void processOrder(Order order) {
         // Validate and retrieve trader
-        Trader trader = persistenceService.getTrader(order.getTraderId());
+        Trader trader = persistenceService.getTrader(order.traderId());
         if (trader == null) {
-            log.error("ERR-001: Trader not found with ID: {}", order.getTraderId());
+            log.error("ERR-001: Trader not found with ID: {}", order.traderId());
             throw new IllegalArgumentException("Trader not found");
         }
 
         // Validate and retrieve desk
-        Desk desk = persistenceService.getDesk(trader.getDeskId());
+        Desk desk = persistenceService.getDesk(trader.deskId());
         if (desk == null) {
-            log.error("ERR-002: Desk not found with ID: {}", trader.getDeskId());
+            log.error("ERR-002: Desk not found with ID: {}", trader.deskId());
             throw new IllegalArgumentException("Desk not found");
         }
 
         // Calculate notional value and update limits
         double notionalValueUSD = calculateUSDNotional(order);
-        updateDeskLimits(desk, order.getSide(), notionalValueUSD);
+        updateDeskLimits(desk, order.side(), notionalValueUSD);
         checkLimitBreaches(desk);
         
         // Persist updated desk state
         persistenceService.saveDesk(desk);
-        log.info("Successfully processed order for trader: {}, desk: {}", trader.getId(), desk.getId());
+        log.info("Successfully processed order for trader: {}, desk: {}", trader.id(), desk.getId());
     }
 
     /**
@@ -84,7 +84,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
      */
     private double calculateUSDNotional(Order order) {
         double localNotional = order.getNotionalValue();
-        return currencyManager.convertToUSD(localNotional, order.getCurrency());
+        return currencyManager.convertToUSD(localNotional, order.currency());
     }
 
     /**

@@ -38,15 +38,9 @@ class OrderMessageValidatorTest {
     @BeforeEach
     void setUp() {
         // Arrange
-        validOrder = new Order();
-        validOrder.setTraderId(UUID.randomUUID());
-        validOrder.setSymbol("AAPL");
-        validOrder.setQuantity(100);
-        validOrder.setPrice(150.0);
-        validOrder.setSide(TradeSide.BUY);
-        validOrder.setCurrency(Currency.valueOf("USD"));
-        validOrder.setTradeDate(LocalDate.now());
-        
+        UUID id = UUID.randomUUID();
+        UUID traderId = UUID.randomUUID();
+        validOrder = new Order(id, traderId, "AAPL", 100, 150.0, TradeSide.BUY, Currency.USD, LocalDate.now());
         validOrderJson = "{\"valid\":\"json\"}";
     }
 
@@ -81,7 +75,9 @@ class OrderMessageValidatorTest {
     @Test
     void validateMessage_WithNegativePrice_ReturnsInvalidResult() throws Exception {
         // Arrange
-        validOrder.setPrice(-100.0);
+        UUID id = UUID.randomUUID();
+        UUID traderId = UUID.randomUUID();
+        validOrder = new Order(id, traderId, "AAPL", 100, -100.0, TradeSide.BUY, Currency.USD, LocalDate.now());
         when(objectMapper.readValue(anyString(), eq(Order.class))).thenReturn(validOrder);
 
         // Act
@@ -102,7 +98,9 @@ class OrderMessageValidatorTest {
     @Test
     void validateMessage_WithZeroQuantity_ReturnsInvalidResult() throws Exception {
         // Arrange
-        validOrder.setQuantity(0);
+        UUID id = UUID.randomUUID();
+        UUID traderId = UUID.randomUUID();
+        validOrder = new Order(id, traderId, "AAPL", 0, 500.0, TradeSide.BUY, Currency.USD, LocalDate.now());
         when(objectMapper.readValue(anyString(), eq(Order.class))).thenReturn(validOrder);
 
         // Act
@@ -123,7 +121,9 @@ class OrderMessageValidatorTest {
     @Test
     void validateMessage_WithNullSymbol_ReturnsInvalidResult() throws Exception {
         // Arrange
-        validOrder.setSymbol(null);
+        UUID id = UUID.randomUUID();
+        UUID traderId = UUID.randomUUID();
+        validOrder = new Order(id, traderId, null, 100, 150.0, TradeSide.BUY, Currency.USD, LocalDate.now());
         when(objectMapper.readValue(anyString(), eq(Order.class))).thenReturn(validOrder);
 
         // Act

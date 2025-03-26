@@ -57,10 +57,9 @@ public class LimitController {
         MDC.put("errorId", errorId);
         
         try {
-            // Validate limits are positive
-            if (deskLimits.getBuyNotionalLimit() <= 0 ||
-                deskLimits.getSellNotionalLimit() <= 0 ||
-                deskLimits.getGrossNotionalLimit() <= 0) {
+            if (deskLimits.buyNotionalLimit() <= 0 ||
+                deskLimits.sellNotionalLimit() <= 0 ||
+                deskLimits.grossNotionalLimit() <= 0) {
                 log.error("ERR-427: Negative or zero limits not allowed for desk: {}", deskId);
                 return ResponseEntity.badRequest().build();
             }
@@ -69,11 +68,10 @@ public class LimitController {
                 log.error("ERR-423: Desk not found for limit update: {}", deskId);
                 return ResponseEntity.notFound().build();
             }
-            
-            deskLimits.setId(deskId);
-            deskLimits.setDeskId(deskId);
+
             try {
-                DeskLimits savedLimits = persistenceService.saveLimits(deskLimits);
+                DeskLimits savedLimits = persistenceService.saveLimits(new DeskLimits(deskId, deskId,
+                        deskLimits.buyNotionalLimit(), deskLimits.sellNotionalLimit(), deskLimits.grossNotionalLimit()));
                 log.info("Successfully updated limits for desk: {}", deskId);
                 return ResponseEntity.ok(savedLimits);
             } catch (Exception e) {

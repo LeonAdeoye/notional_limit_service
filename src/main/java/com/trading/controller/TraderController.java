@@ -38,26 +38,20 @@ public class TraderController {
         
         try {
             // Validate trader doesn't exist
-            if (trader.getId() != null && persistenceService.traderExists(trader.getId())) {
-                log.error("ERR-401: Trader already exists with ID: {}", trader.getId());
+            if (trader.id() != null && persistenceService.traderExists(trader.id())) {
+                log.error("ERR-401: Trader already exists with ID: {}", trader.id());
                 return ResponseEntity.badRequest().build();
             }
             
             // Validate desk exists
-            if (!persistenceService.deskExists(trader.getDeskId())) {
-                log.error("ERR-402: Referenced desk not found with ID: {}", trader.getDeskId());
+            if (!persistenceService.deskExists(trader.deskId())) {
+                log.error("ERR-402: Referenced desk not found with ID: {}", trader.deskId());
                 return ResponseEntity.badRequest().build();
             }
-            
-            // Generate new ID if not provided
-            if (trader.getId() == null) {
-                trader.setId(UUID.randomUUID());
-            }
-            
-            // Save and return new trader
-            Trader savedTrader = persistenceService.saveTrader(trader);
+
+            Trader savedTrader = persistenceService.saveTrader(new Trader(trader.name(), trader.deskId()));
             log.info("Successfully created trader with ID: {} for desk: {}", 
-                    savedTrader.getId(), savedTrader.getDeskId());
+                    savedTrader.id(), savedTrader.deskId());
             return new ResponseEntity<Trader>(savedTrader, HttpStatus.CREATED);
         } catch (Exception e) {
             log.error("ERR-403: Unexpected error creating trader", e);

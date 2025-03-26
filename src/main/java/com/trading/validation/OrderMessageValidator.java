@@ -36,31 +36,31 @@ public class OrderMessageValidator {
             // Validate required fields
             StringBuilder errors = new StringBuilder();
             
-            if (order.getPrice() <= 0) {
+            if (order.price() <= 0) {
                 errors.append("Price must be positive. ");
             }
             
-            if (order.getQuantity() <= 0) {
+            if (order.quantity() <= 0) {
                 errors.append("Quantity must be positive. ");
             }
             
-            if (order.getSymbol() == null || order.getSymbol().trim().isEmpty()) {
+            if (order.symbol() == null || order.symbol().trim().isEmpty()) {
                 errors.append("Symbol is required. ");
             }
             
-            if (order.getTraderId() == null) {
+            if (order.traderId() == null) {
                 errors.append("Trader ID is required. ");
             }
             
-            if (order.getSide() == null) {
+            if (order.side() == null) {
                 errors.append("Trade side is required. ");
             }
             
-            if (order.getTradeDate() == null) {
+            if (order.tradeDate() == null) {
                 errors.append("Trade date is required. ");
             }
             
-            if (order.getCurrency() == null) {
+            if (order.currency() == null) {
                 errors.append("Currency is required. ");
             }
             

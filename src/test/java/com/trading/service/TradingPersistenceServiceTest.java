@@ -50,18 +50,10 @@ class TradingPersistenceServiceTest {
         testDesk = new Desk();
         testDesk.setId(deskId);
         testDesk.setName("Test Desk");
-        
-        testTrader = new Trader();
-        testTrader.setId(traderId);
-        testTrader.setDeskId(deskId);
-        testTrader.setName("Test Trader");
-        
-        testLimits = new DeskLimits();
-        testLimits.setId(deskId);
-        testLimits.setDeskId(deskId);
-        testLimits.setBuyNotionalLimit(1000000);
-        testLimits.setSellNotionalLimit(1000000);
-        testLimits.setGrossNotionalLimit(2000000);
+
+        testTrader = new Trader(traderId, "Test Trader", deskId);
+
+        testLimits = new DeskLimits(deskId, deskId, 1000000, 1000000, 2000000);
     }
 
     @Test
@@ -96,7 +88,7 @@ class TradingPersistenceServiceTest {
         Trader savedTrader = service.saveTrader(testTrader);
 
         assertNotNull(savedTrader);
-        assertEquals(traderId, savedTrader.getId());
+        assertEquals(traderId, savedTrader.id());
         List<Trader> deskTraders = service.getDeskTraders(deskId);
         assertTrue(deskTraders.contains(savedTrader));
     }
@@ -142,7 +134,7 @@ class TradingPersistenceServiceTest {
         DeskLimits savedLimits = service.saveLimits(testLimits);
 
         assertNotNull(savedLimits);
-        assertEquals(deskId, savedLimits.getId());
+        assertEquals(deskId, savedLimits.id());
         assertTrue(service.limitsExist(deskId));
     }
 
@@ -154,8 +146,8 @@ class TradingPersistenceServiceTest {
         DeskLimits retrievedLimits = service.getLimits(deskId);
 
         assertNotNull(retrievedLimits);
-        assertEquals(testLimits.getBuyNotionalLimit(), retrievedLimits.getBuyNotionalLimit());
-        assertEquals(testLimits.getSellNotionalLimit(), retrievedLimits.getSellNotionalLimit());
+        assertEquals(testLimits.buyNotionalLimit(), retrievedLimits.buyNotionalLimit());
+        assertEquals(testLimits.sellNotionalLimit(), retrievedLimits.sellNotionalLimit());
     }
 
     @Test
@@ -171,9 +163,8 @@ class TradingPersistenceServiceTest {
     @Test
     void getAllDesks_ReturnsAllDesks() {
         // Arrange
-        testLimits.setBuyNotionalLimit(0);
-        testLimits.setSellNotionalLimit(0);
-        testLimits.setGrossNotionalLimit(0);
+        UUID id = UUID.randomUUID();
+        DeskLimits testLimits = new DeskLimits(id, id, 0,0,0);
         when(limitsRepository.save(testLimits)).thenReturn(testLimits);
         when(deskRepository.save(testDesk)).thenReturn(testDesk);
         // Act
