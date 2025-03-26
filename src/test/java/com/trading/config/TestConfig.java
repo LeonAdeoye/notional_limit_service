@@ -1,5 +1,6 @@
 package com.trading.config;
 
+import com.trading.messaging.AmpsMessageOutboundProcessor;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -9,7 +10,6 @@ import org.mockito.Mockito;
 import com.trading.service.disruptor.OrderEventFactory;
 import com.trading.service.disruptor.OrderEventHandler;
 import com.trading.service.disruptor.OrderEvent;
-import com.trading.messaging.AmpsMessageProcessor;
 import com.trading.service.CurrencyManager;
 import com.trading.service.TradingPersistenceService;
 import com.lmax.disruptor.dsl.Disruptor;
@@ -45,7 +45,7 @@ public class TestConfig {
     public OrderEventHandler testOrderEventHandler(
             TradingPersistenceService persistenceService,
             CurrencyManager currencyManager) {
-        return new OrderEventHandler(persistenceService, currencyManager, Mockito.mock(AmpsMessageProcessor.class));
+        return new OrderEventHandler(persistenceService, currencyManager, Mockito.mock(AmpsMessageOutboundProcessor.class));
     }
 
     @Bean

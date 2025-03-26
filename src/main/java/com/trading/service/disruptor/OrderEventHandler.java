@@ -1,7 +1,7 @@
 package com.trading.service.disruptor;
 
 import com.lmax.disruptor.EventHandler;
-import com.trading.messaging.AmpsMessageProcessor;
+import com.trading.messaging.AmpsMessageOutboundProcessor;
 import com.trading.model.Desk;
 import com.trading.model.Order;
 import com.trading.model.Trader;
@@ -30,10 +30,9 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
     
     @Autowired
     private final CurrencyManager currencyManager;
-    
-    @Autowired
-    private final AmpsMessageProcessor ampsMessageProcessor;
 
+    @Autowired
+    private final AmpsMessageOutboundProcessor ampsMessageOutboundProcessor;
     /**
      * Main event handling method called by the Disruptor.
      * Processes each order event in sequence.
@@ -109,21 +108,21 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         if (desk.getBuyUtilizationPercentage() > 100) {
             String message = String.format("ERR-004: Buy limit breached for desk: %s", desk.getId());
             log.error(message);
-            ampsMessageProcessor.publishLimitBreach(message);
+            ampsMessageOutboundProcessor.publishLimitBreach(message);
         }
         
         // Check sell limit breach
         if (desk.getSellUtilizationPercentage() > 100) {
             String message = String.format("ERR-005: Sell limit breached for desk: %s", desk.getId());
             log.error(message);
-            ampsMessageProcessor.publishLimitBreach(message);
+            ampsMessageOutboundProcessor.publishLimitBreach(message);
         }
         
         // Check gross limit breach
         if (desk.getGrossUtilizationPercentage() > 100) {
             String message = String.format("ERR-006: Gross limit breached for desk: %s", desk.getId());
             log.error(message);
-            ampsMessageProcessor.publishLimitBreach(message);
+            ampsMessageOutboundProcessor.publishLimitBreach(message);
         }
     }
 } 

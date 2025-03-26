@@ -20,8 +20,8 @@ import org.springframework.beans.factory.annotation.Value;
 
 @Component
 @RequiredArgsConstructor
-public class AmpsMessageProcessor implements MessageHandler {
-    private static final Logger log = LoggerFactory.getLogger(AmpsMessageProcessor.class);
+public class AmpsMessageInboundProcessor implements MessageHandler {
+    private static final Logger log = LoggerFactory.getLogger(AmpsMessageInboundProcessor.class);
     
     @Value("${amps.server.url}")
     private String ampsServerUrl;
@@ -31,9 +31,6 @@ public class AmpsMessageProcessor implements MessageHandler {
     
     @Value("${amps.topic.orders}")
     private String ordersTopic;
-    
-    @Value("${amps.topic.limit.breach}")
-    private String limitBreachTopic;
     
     @Autowired
     private final NotionalLimitService notionalLimitService;
@@ -82,15 +79,6 @@ public class AmpsMessageProcessor implements MessageHandler {
             log.error("ERR-009: Failed to process message", e);
         } finally {
             MDC.remove("errorId");
-        }
-    }
-    
-    public void publishLimitBreach(String breachMessage) {
-        try {
-            ampsClient.publish(limitBreachTopic, breachMessage);
-            log.info("Published limit breach message: {}", breachMessage);
-        } catch (Exception e) {
-            log.error("ERR-009: Failed to publish limit breach message: {}", breachMessage, e);
         }
     }
 } 
