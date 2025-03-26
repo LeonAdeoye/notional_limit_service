@@ -8,5 +8,4 @@ import java.util.UUID;
 
 @Repository
 public interface DeskRepository extends MongoRepository<Desk, UUID> {
-    // Spring Data MongoDB will implement basic CRUD operations
 } 

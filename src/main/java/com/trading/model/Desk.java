@@ -30,6 +30,8 @@ public class Desk {
     private double currentSellNotional;
 
     public Desk(UUID id, String test_desk) {
+        this.id = id;
+        this.name = test_desk;
     }
 
     public double getCurrentGrossNotional() {

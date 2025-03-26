@@ -8,14 +8,11 @@ import org.slf4j.LoggerFactory;
 public class DisruptorEventProducer
 {
     private static final Logger logger = LoggerFactory.getLogger(DisruptorEventProducer.class);
-
     private final RingBuffer<OrderEvent> ringBuffer;
-
     public DisruptorEventProducer(RingBuffer<OrderEvent> ringBuffer)
     {
         this.ringBuffer = ringBuffer;
     }
-
     public void onData(Order order)
     {
         long sequence  = ringBuffer.next();
