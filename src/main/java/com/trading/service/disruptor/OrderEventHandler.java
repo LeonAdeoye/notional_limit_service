@@ -1,5 +1,6 @@
 package com.trading.service.disruptor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lmax.disruptor.EventHandler;
 import com.trading.messaging.AmpsMessageOutboundProcessor;
 import com.trading.model.Desk;
@@ -14,6 +15,8 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Event handler for processing order events in the Disruptor.
@@ -24,15 +27,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OrderEventHandler implements EventHandler<OrderEvent> {
     private static final Logger log = LoggerFactory.getLogger(OrderEventHandler.class);
-    
     @Autowired
     private final TradingPersistenceService persistenceService;
-    
     @Autowired
     private final CurrencyManager currencyManager;
-
     @Autowired
     private final AmpsMessageOutboundProcessor ampsMessageOutboundProcessor;
+    ObjectMapper objectMapper = new ObjectMapper();
     /**
      * Main event handling method called by the Disruptor.
      * Processes each order event in sequence.
@@ -71,7 +72,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         // Calculate notional value and update limits
         double notionalValueUSD = calculateUSDNotional(order);
         updateDeskLimits(desk, order.side(), notionalValueUSD);
-        checkLimitBreaches(desk);
+        checkLimitBreaches(desk, order.side());
         
         // Persist updated desk state
         persistenceService.saveDesk(desk);
@@ -97,32 +98,81 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             desk.setCurrentSellNotional(desk.getCurrentSellNotional() + notionalValueUSD);
             log.debug("Updated sell notional for desk: {} to: {} using: {} USD", desk.getId(), desk.getCurrentSellNotional(), notionalValueUSD);
         }
+        desk.setGrossNotionalLimit(desk.getGrossNotionalLimit() + notionalValueUSD);
+        log.debug("Updated gross notional limit for desk: {} to: {} using: {} USD", desk.getId(), desk.getGrossNotionalLimit(), notionalValueUSD);
+
+        publishNotionalUpdate(desk, side, notionalValueUSD);
+    }
+
+    private void publishNotionalUpdate(Desk desk, TradeSide side, double notionalValueUSD) {
+        try {
+            Map<String, Object> updateDetails = new HashMap<>();
+            updateDetails.put("deskId", desk.getId());
+            updateDetails.put("deskName", desk.getName());
+            updateDetails.put("side", side);
+            updateDetails.put("notionalValueUSD", notionalValueUSD);
+            if (side == TradeSide.BUY) {
+                updateDetails.put("currentBuyNotional", desk.getCurrentBuyNotional());
+            } else if (side == TradeSide.SELL) {
+                updateDetails.put("currentSellNotional", desk.getCurrentSellNotional());
+            }
+            updateDetails.put("grossNotionalLimit", desk.getGrossNotionalLimit());
+
+            String message = objectMapper.writeValueAsString(updateDetails);
+            ampsMessageOutboundProcessor.publishLimitBreach(message);
+            log.info("Published notional update message: {}", message);
+        } catch (Exception e) {
+            log.error("Failed to publish notional update message", e);
+        }
     }
 
     /**
      * Checks for and publishes any limit breaches.
      * Monitors buy, sell, and gross notional limits.
      */
-    private void checkLimitBreaches(Desk desk) {
+
+    private void checkLimitBreaches(Desk desk, TradeSide side) {
         // Check buy limit breach
         if (desk.getBuyUtilizationPercentage() > 100) {
-            String message = String.format("ERR-004: Buy limit breached for desk: %s", desk.getId());
+            String message = createBreachMessage(objectMapper, "ERR-004", "Buy limit breached", desk, TradeSide.BUY);
             log.error(message);
             ampsMessageOutboundProcessor.publishLimitBreach(message);
         }
-        
+
         // Check sell limit breach
         if (desk.getSellUtilizationPercentage() > 100) {
-            String message = String.format("ERR-005: Sell limit breached for desk: %s", desk.getId());
+            String message = createBreachMessage(objectMapper, "ERR-005", "Sell limit breached", desk, TradeSide.SELL);
             log.error(message);
             ampsMessageOutboundProcessor.publishLimitBreach(message);
         }
-        
+
         // Check gross limit breach
         if (desk.getGrossUtilizationPercentage() > 100) {
-            String message = String.format("ERR-006: Gross limit breached for desk: %s", desk.getId());
+            String message = createBreachMessage(objectMapper, "ERR-006", "Gross limit breached", desk, side);
             log.error(message);
             ampsMessageOutboundProcessor.publishLimitBreach(message);
+        }
+    }
+
+    private String createBreachMessage(ObjectMapper objectMapper, String errorCode, String errorMessage, Desk desk, TradeSide side) {
+        try {
+            Map<String, Object> breachDetails = new HashMap<>();
+            breachDetails.put("errorCode", errorCode);
+            breachDetails.put("errorMessage", errorMessage);
+            breachDetails.put("deskId", desk.getId());
+            breachDetails.put("deskName", desk.getName());
+            if(side.getCode().equals(TradeSide.BUY)) {
+                breachDetails.put("currentBuyNotional", desk.getCurrentBuyNotional());
+                breachDetails.put("buyUtilizationPercentage", desk.getBuyUtilizationPercentage());
+            } else {
+                breachDetails.put("currentSellNotional", desk.getCurrentSellNotional());
+                breachDetails.put("sellUtilizationPercentage", desk.getSellUtilizationPercentage());
+            }
+            breachDetails.put("grossUtilizationPercentage", desk.getGrossUtilizationPercentage());
+            return objectMapper.writeValueAsString(breachDetails);
+        } catch (Exception e) {
+            log.error("Failed to create breach message", e);
+            return "{}";
         }
     }
 } 
