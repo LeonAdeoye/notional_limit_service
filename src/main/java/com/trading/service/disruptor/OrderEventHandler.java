@@ -15,14 +15,10 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import javax.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Event handler for processing order events in the Disruptor.
- * Handles the actual business logic of processing orders and updating limits.
- * Ensures sequential processing of orders for thread safety.
- */
 @Component
 @RequiredArgsConstructor
 public class OrderEventHandler implements EventHandler<OrderEvent> {
@@ -34,10 +30,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
     @Autowired
     private final AmpsMessageOutboundProcessor ampsMessageOutboundProcessor;
     ObjectMapper objectMapper = new ObjectMapper();
-    /**
-     * Main event handling method called by the Disruptor.
-     * Processes each order event in sequence.
-     */
+
     @Override
     public void onEvent(OrderEvent event, long sequence, boolean endOfBatch) {
         try {
@@ -50,10 +43,6 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         }
     }
 
-    /**
-     * Processes a single order by validating trader/desk and updating limits.
-     * @throws IllegalArgumentException if trader or desk not found
-     */
     private void processOrder(Order order) {
         // Validate and retrieve trader
         Trader trader = persistenceService.getTrader(order.traderId());
@@ -79,17 +68,11 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         log.info("Successfully processed order for trader: {}, desk: {}", trader.id(), desk.getId());
     }
 
-    /**
-     * Converts order notional value to USD using current FX rates.
-     */
     private double calculateUSDNotional(Order order) {
         double localNotional = order.getNotionalValue();
         return currencyManager.convertToUSD(localNotional, order.currency());
     }
 
-    /**
-     * Updates desk limits based on order side and notional value.
-     */
     private void updateDeskLimits(Desk desk, TradeSide side, double notionalValueUSD) {
         if (side == TradeSide.BUY) {
             desk.setCurrentBuyNotional(desk.getCurrentBuyNotional() + notionalValueUSD);
@@ -126,41 +109,39 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         }
     }
 
-    /**
-     * Checks for and publishes any limit breaches.
-     * Monitors buy, sell, and gross notional limits.
-     */
-
     private void checkLimitBreaches(Desk desk, TradeSide side) {
-        // Check buy limit breach
-        if (desk.getBuyUtilizationPercentage() > 100) {
-            String message = createBreachMessage(objectMapper, "ERR-004", "Buy limit breached", desk, TradeSide.BUY);
-            log.error(message);
-            ampsMessageOutboundProcessor.publishLimitBreach(message);
-        }
-
-        // Check sell limit breach
-        if (desk.getSellUtilizationPercentage() > 100) {
-            String message = createBreachMessage(objectMapper, "ERR-005", "Sell limit breached", desk, TradeSide.SELL);
-            log.error(message);
-            ampsMessageOutboundProcessor.publishLimitBreach(message);
-        }
-
-        // Check gross limit breach
-        if (desk.getGrossUtilizationPercentage() > 100) {
-            String message = createBreachMessage(objectMapper, "ERR-006", "Gross limit breached", desk, side);
-            log.error(message);
-            ampsMessageOutboundProcessor.publishLimitBreach(message);
+        boolean grossUtilizationLimitBreached = false;
+        for(int limitPercentage = 100; limitPercentage >= 20; limitPercentage -= 20) {
+            if (desk.getGrossUtilizationPercentage() > limitPercentage) {
+                String message = createBreachMessage(objectMapper, "ERR-006", "Gross limit breached", desk, side, limitPercentage);
+                log.error(message);
+                ampsMessageOutboundProcessor.publishLimitBreach(message);
+                grossUtilizationLimitBreached = true;
+            }
+            if (desk.getBuyUtilizationPercentage() > limitPercentage) {
+                String message = createBreachMessage(objectMapper, "ERR-004", "Buy limit breached", desk, TradeSide.BUY, limitPercentage);
+                log.error(message);
+                ampsMessageOutboundProcessor.publishLimitBreach(message);
+                break;
+            }
+            if (desk.getSellUtilizationPercentage() > limitPercentage) {
+                String message = createBreachMessage(objectMapper, "ERR-005", "Sell limit breached", desk, TradeSide.SELL, limitPercentage);
+                log.error(message);
+                break;
+            }
+            if (grossUtilizationLimitBreached)
+                break;
         }
     }
 
-    private String createBreachMessage(ObjectMapper objectMapper, String errorCode, String errorMessage, Desk desk, TradeSide side) {
+    private String createBreachMessage(ObjectMapper objectMapper, String errorCode, String errorMessage, Desk desk, TradeSide side, int limitPercentage) {
         try {
             Map<String, Object> breachDetails = new HashMap<>();
             breachDetails.put("errorCode", errorCode);
             breachDetails.put("errorMessage", errorMessage);
             breachDetails.put("deskId", desk.getId());
             breachDetails.put("deskName", desk.getName());
+            breachDetails.put("limitPercentage", limitPercentage);
             if(side.getCode().equals(TradeSide.BUY)) {
                 breachDetails.put("currentBuyNotional", desk.getCurrentBuyNotional());
                 breachDetails.put("buyUtilizationPercentage", desk.getBuyUtilizationPercentage());

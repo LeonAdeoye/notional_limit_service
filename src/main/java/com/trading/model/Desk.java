@@ -28,9 +28,20 @@ public class Desk {
     private double currentBuyNotional;
     private double currentSellNotional;
 
+    public Desk() {
+    }
+
     public Desk(UUID id, String test_desk) {
         this.id = id;
         this.name = test_desk;
+    }
+
+    public Desk(UUID id, String name, double buyNotionalLimit, double sellNotionalLimit, double grossNotionalLimit) {
+        this.id = id;
+        this.name = name;
+        this.buyNotionalLimit = buyNotionalLimit;
+        this.sellNotionalLimit = sellNotionalLimit;
+        this.grossNotionalLimit = grossNotionalLimit;
     }
 
     public double getCurrentGrossNotional() {

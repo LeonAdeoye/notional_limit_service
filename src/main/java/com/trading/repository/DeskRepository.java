@@ -7,4 +7,5 @@ import java.util.UUID;
 
 @Repository
 public interface DeskRepository extends MongoRepository<Desk, UUID> {
+    Desk findByName(String name);
 } 

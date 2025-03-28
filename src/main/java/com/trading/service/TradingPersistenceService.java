@@ -43,24 +43,21 @@ public class TradingPersistenceService {
     public void initializeCaches() {
         log.info("Initializing trading data caches from MongoDB");
         try {
-            // Load all desks
+            createDefaultDeskIfItDoesNotExist();
             List<Desk> desks = deskRepository.findAll();
             deskCache.clear();
             desks.forEach(desk -> deskCache.put(desk.getId(), desk));
             log.info("Loaded {} desks into cache", desks.size());
-            
-            // Load all traders
+
             List<Trader> traders = traderRepository.findAll();
             traderCache.clear();
             traders.forEach(trader -> traderCache.put(trader.id(), trader));
-            
-            // Group traders by desk
+
             deskTradersCache.clear();
             deskTradersCache.putAll(traders.stream()
                 .collect(Collectors.groupingBy(Trader::deskId)));
             log.info("Loaded {} traders into cache", traders.size());
-            
-            // Load all limits
+
             List<DeskLimits> limits = limitsRepository.findAll();
             limitsCache.clear();
             limits.forEach(limit -> limitsCache.put(limit.deskId(), limit));
@@ -201,4 +198,12 @@ public class TradingPersistenceService {
             throw e;
         }
     }
-} 
+
+    public void createDefaultDeskIfItDoesNotExist() {
+        if(deskRepository.count() == 0 || deskRepository.findByName("Default Desk") == null) {
+            log.info("Creating default desk as it does not exist.");
+            Desk desk = new Desk(UUID.randomUUID(), "Default Desk", 1000000, 1000000, 2000000);
+            saveDesk(desk);
+        }
+    }
+}
