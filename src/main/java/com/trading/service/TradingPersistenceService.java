@@ -43,7 +43,6 @@ public class TradingPersistenceService {
     public void initializeCaches() {
         log.info("Initializing trading data caches from MongoDB");
         try {
-            createDefaultDeskIfItDoesNotExist();
             List<Desk> desks = deskRepository.findAll();
             deskCache.clear();
             desks.forEach(desk -> deskCache.put(desk.getId(), desk));
@@ -196,14 +195,6 @@ public class TradingPersistenceService {
         } catch (Exception e) {
             log.error("ERR-207: Failed to delete limits for desk: {}", deskId, e);
             throw e;
-        }
-    }
-
-    public void createDefaultDeskIfItDoesNotExist() {
-        if(deskRepository.count() == 0 || deskRepository.findByName("Default Desk") == null) {
-            log.info("Creating default desk as it does not exist.");
-            Desk desk = new Desk(UUID.randomUUID(), "Default Desk", 1000000, 1000000, 2000000);
-            saveDesk(desk);
         }
     }
 }

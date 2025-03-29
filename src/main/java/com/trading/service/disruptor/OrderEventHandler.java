@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import javax.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,36 +33,30 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
     @Override
     public void onEvent(OrderEvent event, long sequence, boolean endOfBatch) {
         try {
-            // Set error context for logging
             MDC.put("errorId", event.getErrorId());
             processOrder(event.getOrder());
         } finally {
-            // Clean up logging context
             MDC.remove("errorId");
         }
     }
 
     private void processOrder(Order order) {
-        // Validate and retrieve trader
         Trader trader = persistenceService.getTrader(order.traderId());
         if (trader == null) {
             log.error("ERR-001: Trader not found with ID: {}", order.traderId());
             throw new IllegalArgumentException("Trader not found");
         }
 
-        // Validate and retrieve desk
         Desk desk = persistenceService.getDesk(trader.deskId());
         if (desk == null) {
             log.error("ERR-002: Desk not found with ID: {}", trader.deskId());
             throw new IllegalArgumentException("Desk not found");
         }
 
-        // Calculate notional value and update limits
         double notionalValueUSD = calculateUSDNotional(order);
         updateDeskLimits(desk, order.side(), notionalValueUSD);
         checkLimitBreaches(desk, order.side());
-        
-        // Persist updated desk state
+
         persistenceService.saveDesk(desk);
         log.info("Successfully processed order for trader: {}, desk: {}", trader.id(), desk.getId());
     }
