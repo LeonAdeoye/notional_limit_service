@@ -49,7 +49,10 @@ public class AmpsMessageInboundProcessor implements MessageHandler {
             ampsClient = new Client(ampsClientName);
             ampsClient.connect(ampsServerUrl);
             ampsClient.logon();
-            ampsClient.subscribe(ordersTopic);
+            //ampsClient.subscribe(ordersTopic);
+            for(Message message : (ampsClient.subscribe(ordersTopic))) {
+                invoke(message);
+            }
             log.info("Successfully initialized AMPS client and subscribed to topic: {}", ordersTopic);
         } catch (Exception e) {
             log.error("ERR-007: Failed to initialize AMPS client", e);
@@ -63,7 +66,6 @@ public class AmpsMessageInboundProcessor implements MessageHandler {
         MDC.put("errorId", errorId);
         
         try {
-            // First validate the message
             ValidationResult validationResult = messageValidator.validateMessage(message.getData());
             
             if (!validationResult.isValid()) {

@@ -35,7 +35,6 @@ public class DisruptorServiceImpl implements DisruptorService
         // Construct the Disruptor
         disruptor = new Disruptor<>(factory, bufferSize,
                 DaemonThreadFactory.INSTANCE, ProducerType.SINGLE, new BusySpinWaitStrategy());
-        logger.info("Created " + name + " disruptor.");
 
         disruptor.handleEventsWith(actionEventHandler);
 

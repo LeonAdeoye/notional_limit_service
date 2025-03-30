@@ -33,6 +33,7 @@ public class CurrencyManager {
             updateRate(Currency.AUD, 0.73);
             updateRate(Currency.USD, 1.0);
             updateRate(Currency.CAD, 0.75);
+            updateRate(Currency.KRW, 0.00068);
             
             log.info("Successfully refreshed FX rates for {} currencies", fxRates.size());
         } catch (Exception e) {
@@ -46,9 +47,9 @@ public class CurrencyManager {
         }
         
         Double rate = fxRates.get(fromCurrency);
-        if (rate == null) {
-            log.error("ERR-302: FX rate not found for currency: {}", fromCurrency);
-            throw new IllegalArgumentException("No FX rate available for currency: " + fromCurrency);
+        if (rate == null  || rate == 0.0) {
+            log.error("ERR-302: FX rate invalid for currency: {}", fromCurrency);
+            throw new IllegalArgumentException("Invalid FX rate available for currency: " + fromCurrency);
         }
         
         return amount * rate;
@@ -62,7 +63,7 @@ public class CurrencyManager {
         Double oldRate = fxRates.put(currency, rateToUSD);
         if (oldRate == null || !oldRate.equals(rateToUSD)) {
             log.info("Updated FX rate for {}/USD: {} -> {}", 
-                    currency, oldRate, rateToUSD);
+                    currency, (oldRate == null ? 0 : oldRate), rateToUSD);
         }
     }
     

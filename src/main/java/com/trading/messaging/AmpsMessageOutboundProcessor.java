@@ -18,6 +18,9 @@ public class AmpsMessageOutboundProcessor {
     @Value("${amps.topic.limit.breach}")
     private String limitBreachTopic;
 
+    @Value("${amps.topic.notional.update}")
+    private String notionalUpdateTopic;
+
     @PostConstruct
     public void initialize() throws Exception {
         try {
@@ -35,6 +38,15 @@ public class AmpsMessageOutboundProcessor {
             log.info("Published limit breach message: {}", breachMessage);
         } catch (Exception e) {
             log.error("ERR-902: Failed to publish limit breach message: {}", breachMessage, e);
+        }
+    }
+
+    public void publishNotionalUpdate(String notionalUpdateMessage) {
+        try {
+            ampsClient.publish(notionalUpdateTopic, notionalUpdateMessage);
+            log.info("Published notional update message: {}", notionalUpdateMessage);
+        } catch (Exception e) {
+            log.error("ERR-903: Failed to publish notional update message: {}", notionalUpdateMessage, e);
         }
     }
 }

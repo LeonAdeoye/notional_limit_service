@@ -1,22 +1,33 @@
 package com.trading.model;
 
-
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.UUID;
 
+@Data
+@NoArgsConstructor
 @Document(collection = "traders")
-public record Trader (
+public class Trader {
     @Id
-    UUID id,
+    private UUID id;
     @NotBlank(message = "Trader name is required")
-    String name,
+    private String name;
     @NotNull(message = "Desk ID is required")
-    UUID deskId) {
-    public Trader(String name, UUID deskId) {
-        this(UUID.randomUUID(), name, deskId);
+    private UUID deskId;
+
+    public Trader(UUID id, String name, UUID deskId) {
+        this.id = id;
+        this.name = name;
+        this.deskId = deskId;
     }
 
+    public Trader(String name, UUID deskId) {
+        this.name = name;
+        this.deskId = deskId;
+        this.id = UUID.randomUUID();
+    }
 }

@@ -13,7 +13,8 @@ public enum Currency {
     AUD("Australian Dollar"),
     CAD("Canadian Dollar"),
     HKD("Hong Kong Dollar"),
-    SGD("Singapore Dollar");
+    SGD("Singapore Dollar"),
+    KRW("South Korean Won");
 
     private final String description;
 

@@ -2,10 +2,8 @@ package com.trading.service;
 
 import com.trading.model.Desk;
 import com.trading.model.Trader;
-import com.trading.model.DeskLimits;
 import com.trading.repository.DeskRepository;
 import com.trading.repository.TraderRepository;
-import com.trading.repository.DeskLimitsRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,14 +28,11 @@ public class TradingPersistenceService {
     private final DeskRepository deskRepository;
     @Autowired
     private final TraderRepository traderRepository;
-    @Autowired
-    private final DeskLimitsRepository limitsRepository;
     
     // In-memory caches
     private final Map<UUID, Desk> deskCache = new ConcurrentHashMap<>();
     private final Map<UUID, Trader> traderCache = new ConcurrentHashMap<>();
     private final Map<UUID, List<Trader>> deskTradersCache = new ConcurrentHashMap<>();
-    private final Map<UUID, DeskLimits> limitsCache = new ConcurrentHashMap<>();
     
     @PostConstruct
     public void initializeCaches() {
@@ -45,22 +40,23 @@ public class TradingPersistenceService {
         try {
             List<Desk> desks = deskRepository.findAll();
             deskCache.clear();
-            desks.forEach(desk -> deskCache.put(desk.getId(), desk));
+            desks.forEach(desk -> {
+                deskCache.put(desk.getId(), desk);
+                log.info("Loaded desk: {} into cache", desk);
+            });
             log.info("Loaded {} desks into cache", desks.size());
 
             List<Trader> traders = traderRepository.findAll();
             traderCache.clear();
-            traders.forEach(trader -> traderCache.put(trader.id(), trader));
+            traders.forEach(trader -> {
+                traderCache.put(trader.getId(), trader);
+                log.info("Loaded trader: {} into cache", trader);
+            });
 
             deskTradersCache.clear();
             deskTradersCache.putAll(traders.stream()
-                .collect(Collectors.groupingBy(Trader::deskId)));
+                .collect(Collectors.groupingBy(Trader::getDeskId)));
             log.info("Loaded {} traders into cache", traders.size());
-
-            List<DeskLimits> limits = limitsRepository.findAll();
-            limitsCache.clear();
-            limits.forEach(limit -> limitsCache.put(limit.deskId(), limit));
-            log.info("Loaded {} desk limits into cache", limits.size());
             
         } catch (Exception e) {
             log.error("ERR-201: Failed to initialize caches from MongoDB", e);
@@ -73,12 +69,6 @@ public class TradingPersistenceService {
         try {
             Desk savedDesk = deskRepository.save(desk);
             deskCache.put(savedDesk.getId(), savedDesk);
-            
-            // Initialize limits if they don't exist
-            if (!limitsExist(savedDesk.getId()))
-                saveLimits(new DeskLimits(savedDesk.getId(), savedDesk.getId(), desk.getBuyNotionalLimit(),
-                        desk.getSellNotionalLimit(), desk.getGrossNotionalLimit()));
-            
             log.info("Saved desk with ID: {} to MongoDB and cache", savedDesk.getId());
             return savedDesk;
         } catch (Exception e) {
@@ -91,16 +81,16 @@ public class TradingPersistenceService {
     public Trader saveTrader(Trader trader) {
         try {
             Trader savedTrader = traderRepository.save(trader);
-            traderCache.put(savedTrader.id(), savedTrader);
+            traderCache.put(savedTrader.getId(), savedTrader);
             
             // Update desk-traders cache
-            deskTradersCache.computeIfAbsent(savedTrader.deskId(), k -> new java.util.ArrayList<>())
+            deskTradersCache.computeIfAbsent(savedTrader.getDeskId(), k -> new java.util.ArrayList<>())
                 .add(savedTrader);
             
-            log.info("Saved trader with ID: {} to MongoDB and cache", savedTrader.id());
+            log.info("Saved trader with ID: {} to MongoDB and cache", savedTrader.getId());
             return savedTrader;
         } catch (Exception e) {
-            log.error("ERR-203: Failed to save trader: {}", trader.id(), e);
+            log.error("ERR-203: Failed to save trader: {}", trader.getId(), e);
             throw e;
         }
     }
@@ -111,7 +101,6 @@ public class TradingPersistenceService {
             deskRepository.deleteById(deskId);
             deskCache.remove(deskId);
             deskTradersCache.remove(deskId);
-            deleteLimits(deskId);
             log.info("Deleted desk and its limits with ID: {} from MongoDB and cache", deskId);
         } catch (Exception e) {
             log.error("ERR-204: Failed to delete desk: {}", deskId, e);
@@ -124,8 +113,8 @@ public class TradingPersistenceService {
         try {
             Trader trader = traderCache.get(traderId);
             if (trader != null) {
-                deskTradersCache.getOrDefault(trader.deskId(), new java.util.ArrayList<>())
-                    .removeIf(t -> t.id().equals(traderId));
+                deskTradersCache.getOrDefault(trader.getDeskId(), new java.util.ArrayList<>())
+                    .removeIf(t -> t.getId().equals(traderId));
             }
             
             traderRepository.deleteById(traderId);
@@ -164,37 +153,8 @@ public class TradingPersistenceService {
     public boolean hasTradersForDesk(UUID deskId) {
         return !getDeskTraders(deskId).isEmpty();
     }
-    
-    @Transactional
-    public DeskLimits saveLimits(DeskLimits limits) {
-        try {
-            DeskLimits savedLimits = limitsRepository.save(limits);
-            limitsCache.put(savedLimits.deskId(), savedLimits);
-            log.info("Saved limits for desk ID: {} to MongoDB and cache", savedLimits.deskId());
-            return savedLimits;
-        } catch (Exception e) {
-            log.error("ERR-206: Failed to save limits for desk: {}", limits.deskId(), e);
-            throw e;
-        }
-    }
-    
-    public DeskLimits getLimits(UUID deskId) {
-        return limitsCache.get(deskId);
-    }
-    
-    public boolean limitsExist(UUID deskId) {
-        return limitsCache.containsKey(deskId);
-    }
-    
-    @Transactional
-    public void deleteLimits(UUID deskId) {
-        try {
-            limitsRepository.deleteById(deskId);
-            limitsCache.remove(deskId);
-            log.info("Deleted limits for desk ID: {} from MongoDB and cache", deskId);
-        } catch (Exception e) {
-            log.error("ERR-207: Failed to delete limits for desk: {}", deskId, e);
-            throw e;
-        }
+
+    public List<Trader> getAllTraders() {
+        return new ArrayList<>(traderCache.values());
     }
 }

@@ -16,11 +16,6 @@ import javax.validation.constraints.NotNull;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * REST Controller for managing traders.
- * Provides endpoints for CRUD operations on traders and their desk assignments.
- * Ensures proper validation of trader-desk relationships.
- */
 @RestController
 @RequestMapping("/api/v1/traders")
 @RequiredArgsConstructor
@@ -36,21 +31,19 @@ public class TraderController {
         MDC.put("errorId", errorId);
         
         try {
-            // Validate trader doesn't exist
-            if (trader.id() != null && persistenceService.traderExists(trader.id())) {
-                log.error("ERR-401: Trader already exists with ID: {}", trader.id());
+            if (trader.getId() != null && persistenceService.traderExists(trader.getId())) {
+                log.error("ERR-401: Trader already exists with ID: {}", trader.getId());
                 return ResponseEntity.badRequest().build();
             }
             
-            // Validate desk exists
-            if (!persistenceService.deskExists(trader.deskId())) {
-                log.error("ERR-402: Referenced desk not found with ID: {}", trader.deskId());
+            if (!persistenceService.deskExists(trader.getDeskId())) {
+                log.error("ERR-402: Referenced desk not found with ID: {}", trader.getDeskId());
                 return ResponseEntity.badRequest().build();
             }
 
-            Trader savedTrader = persistenceService.saveTrader(new Trader(trader.name(), trader.deskId()));
+            Trader savedTrader = persistenceService.saveTrader(new Trader(trader.getName(), trader.getDeskId()));
             log.info("Successfully created trader with ID: {} for desk: {}", 
-                    savedTrader.id(), savedTrader.deskId());
+                    savedTrader.getId(), savedTrader.getDeskId());
             return new ResponseEntity<Trader>(savedTrader, HttpStatus.CREATED);
         } catch (Exception e) {
             log.error("ERR-403: Unexpected error creating trader", e);
@@ -74,6 +67,22 @@ public class TraderController {
             return ResponseEntity.ok(trader);
         } catch (Exception e) {
             log.error("ERR-405: Error retrieving trader: {}", id, e);
+            return ResponseEntity.internalServerError().build();
+        } finally {
+            MDC.remove("errorId");
+        }
+    }
+
+    @GetMapping()
+    public ResponseEntity<List<Trader>> getTraders() {
+        String errorId = UUID.randomUUID().toString();
+        MDC.put("errorId", errorId);
+
+        try {
+            List<Trader> traders = persistenceService.getAllTraders();
+            return ResponseEntity.ok(traders);
+        } catch (Exception e) {
+            log.error("ERR-405: Error retrieving all traders.", e);
             return ResponseEntity.internalServerError().build();
         } finally {
             MDC.remove("errorId");
