@@ -1,9 +1,5 @@
 package com.trading.model;
 
-/**
- * Enum representing the side of a trade.
- * Used to indicate whether an order is buying or selling.
- */
 public enum TradeSide {
     BUY("Buy", "Buying order"),
     SELL("Sell", "Selling order");

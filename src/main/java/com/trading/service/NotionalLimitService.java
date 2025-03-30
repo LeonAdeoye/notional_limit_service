@@ -14,16 +14,13 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.util.UUID;
 
-/**
- * Service responsible for managing notional limits using LMAX Disruptor.
- * Provides high-performance, sequential processing of orders.
- */
 @Service
 @RequiredArgsConstructor
 public class NotionalLimitService {
     private static final Logger log = LoggerFactory.getLogger(NotionalLimitService.class);
     @Value("${app.disruptor.buffer-size:1024}")
     private int bufferSize=1024;
+    private static int countOfOrders = 0;
 
     @Autowired
     private final OrderEventHandler orderEventHandler;
@@ -37,6 +34,7 @@ public class NotionalLimitService {
 
     @PreDestroy
     public void shutdown() {
+        log.info("Shutting down NotionalLimitService. Total orders processed: {}", countOfOrders);
         disruptorService.stop();
     }
 
@@ -45,6 +43,7 @@ public class NotionalLimitService {
         MDC.put("errorId", errorId);
         
         try {
+            countOfOrders++;
             if(!isValidOrder(order)) {
                 log.error("Invalid order: {}", order);
                 return;
