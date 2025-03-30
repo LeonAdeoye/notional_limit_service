@@ -44,10 +44,6 @@ public class Desk {
         this.sellNotionalLimit = sellNotionalLimit;
         this.grossNotionalLimit = grossNotionalLimit;
     }
-
-    public double getCurrentGrossNotional() {
-        return currentGrossNotional;
-    }
     
     public double getBuyUtilizationPercentage() {
         return (currentBuyNotional / buyNotionalLimit) * 100;
