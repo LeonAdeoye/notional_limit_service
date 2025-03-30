@@ -27,6 +27,7 @@ public class Desk {
     
     private double currentBuyNotional;
     private double currentSellNotional;
+    private double currentGrossNotional;
 
     public Desk() {
     }
@@ -45,7 +46,7 @@ public class Desk {
     }
 
     public double getCurrentGrossNotional() {
-        return currentBuyNotional + currentSellNotional;
+        return currentGrossNotional;
     }
     
     public double getBuyUtilizationPercentage() {
@@ -57,6 +58,6 @@ public class Desk {
     }
     
     public double getGrossUtilizationPercentage() {
-        return (getCurrentGrossNotional() / grossNotionalLimit) * 100;
+        return (currentGrossNotional / grossNotionalLimit) * 100;
     }
 } 
