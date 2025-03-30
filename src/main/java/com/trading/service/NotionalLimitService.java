@@ -18,8 +18,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class NotionalLimitService {
     private static final Logger log = LoggerFactory.getLogger(NotionalLimitService.class);
-    @Value("${app.disruptor.buffer-size:1024}")
-    private int bufferSize=1024;
     private static int countOfOrders = 0;
 
     @Autowired
