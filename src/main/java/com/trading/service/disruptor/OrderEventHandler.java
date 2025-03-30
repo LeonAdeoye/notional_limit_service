@@ -29,7 +29,10 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
     private final CurrencyManager currencyManager;
     @Autowired
     private final AmpsMessageOutboundProcessor ampsMessageOutboundProcessor;
-    ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final double ROUNDING_FACTOR = Math.pow(10, 2);
+    private static final Function<Double, Double> round2dp = (value) -> Math.round(value * ROUNDING_FACTOR) / ROUNDING_FACTOR;
+
 
     @Override
     public void onEvent(OrderEvent event, long sequence, boolean endOfBatch) {
@@ -55,13 +58,8 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         }
 
         double notionalValueUSD = calculateUSDNotional(order);
-
-        if (order.side() == TradeSide.BUY)
-            checkBuyNotional(desk, order);
-        else
-            checkSellNotional(desk, order);
-
-        checkGrossNotional(desk, order);
+        checkSideNotionalLimit(desk, order, notionalValueUSD);
+        checkGrossNotionalLimit(desk, order, notionalValueUSD);
     }
 
     private double calculateUSDNotional(Order order) {
@@ -69,38 +67,35 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         return currencyManager.convertToUSD(localNotional, order.currency());
     }
 
-    private void checkBuyNotional(Desk desk, Order order) {
-        double notionalValueUSD = calculateUSDNotional(order);
-        double buyTotal = desk.getCurrentBuyNotional() + notionalValueUSD;
-        if(buyTotal > desk.getBuyNotionalLimit()) {
-            log.info("REJECTION => Order notional: {} causes a {} buy notional limit 100% breach for desk: {} with a current buy notional: {}", round2dp.apply(notionalValueUSD), desk.getBuyNotionalLimit(), desk.getName(), round2dp.apply(desk.getCurrentBuyNotional()));
-            String message = createBreachMessage(objectMapper, "Full Buy limit", desk, order, 100);
-            if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
+    private void checkSideNotionalLimit(Desk desk, Order order, double notionalValueUSD) {
+        TradeSide side = order.side();
+        String sideStr = side.toString();
+        double currentNotional = (side == TradeSide.BUY) ? desk.getCurrentBuyNotional() : desk.getCurrentSellNotional();
+        double limit = (side == TradeSide.BUY) ? desk.getBuyNotionalLimit() : desk.getSellNotionalLimit();
+        double updatedNotional = currentNotional + notionalValueUSD;
+
+        if (updatedNotional > limit) {
+            log.info("REJECTION => Order notional: {} causes a {} {} notional limit breach for desk: {} with a current {} notional: {}",
+                    round2dp.apply(notionalValueUSD), limit, sideStr, desk.getName(), sideStr, round2dp.apply(currentNotional));
+
+            String message = createBreachMessage(objectMapper, "Full " + sideStr + " limit", desk, order, 100);
+            if (!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
             return;
         }
-        log.debug("ACCEPTED => Updated current BUY notional for desk: {} from: {} to: {} using new BUY order's notional: {}", desk.getName(), round2dp.apply(desk.getCurrentBuyNotional()), round2dp.apply(buyTotal), round2dp.apply(notionalValueUSD));
-        desk.setCurrentBuyNotional(buyTotal);
-        publishNotionalUpdate(desk, TradeSide.BUY, notionalValueUSD);
+
+        log.debug("ACCEPTED => Updated current {} notional for desk: {} from: {} to: {} using new {} order's notional: {}",
+                sideStr, desk.getName(), round2dp.apply(currentNotional), round2dp.apply(updatedNotional), sideStr, round2dp.apply(notionalValueUSD));
+
+        if (side == TradeSide.BUY)
+            desk.setCurrentBuyNotional(updatedNotional);
+        else
+            desk.setCurrentSellNotional(updatedNotional);
+
+        publishNotionalUpdate(desk, side, notionalValueUSD);
         checkLimitBreaches(desk, order);
     }
 
-    private void checkSellNotional(Desk desk, Order order) {
-        double notionalValueUSD = calculateUSDNotional(order);
-        double sellTotal = desk.getCurrentSellNotional() + notionalValueUSD;
-        if(sellTotal > desk.getSellNotionalLimit()) {
-            log.info("REJECTION => Order notional: {} causes a {} sell notional limit breach for desk: {} with a current sell notional: {}", round2dp.apply(notionalValueUSD), desk.getSellNotionalLimit(), desk.getName(), round2dp.apply(desk.getCurrentSellNotional()));
-            String message = createBreachMessage(objectMapper, "Full Sell limit", desk, order, 100);
-            if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
-            return;
-        }
-        log.debug("ACCEPTED => Updated current SELL notional for desk: {} from: {} to: {} using the new SELL order's notional: {}", desk.getName(), round2dp.apply(desk.getCurrentSellNotional()), round2dp.apply(sellTotal), round2dp.apply(notionalValueUSD));
-        desk.setCurrentSellNotional(sellTotal);
-        publishNotionalUpdate(desk, TradeSide.SELL, notionalValueUSD);
-        checkLimitBreaches(desk, order);
-    }
-
-    private void checkGrossNotional(Desk desk, Order order) {
-        double notionalValueUSD = calculateUSDNotional(order);
+    private void checkGrossNotionalLimit(Desk desk, Order order, double notionalValueUSD) {
         double grossTotal = desk.getCurrentGrossNotional() + notionalValueUSD;
         if(grossTotal > desk.getGrossNotionalLimit()) {
             log.info("REJECTION => Order notional: {} causes a {} gross notional limit 100% breach for desk: {} with a current gross notional: {}", round2dp.apply(notionalValueUSD), desk.getGrossNotionalLimit(), desk.getName(), round2dp.apply(desk.getCurrentGrossNotional()));
@@ -110,8 +105,6 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         }
         desk.setCurrentGrossNotional(grossTotal);
     }
-
-    private Function<Double, Double> round2dp = (value) ->  Math.round(value*Math.pow(10,2))/Math.pow(10,2);
 
     private void publishNotionalUpdate(Desk desk, TradeSide side, double notionalValueUSD) {
         try {
