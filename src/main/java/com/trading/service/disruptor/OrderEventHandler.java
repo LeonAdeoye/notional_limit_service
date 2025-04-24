@@ -113,12 +113,21 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             updateDetails.put("deskName", desk.getName());
             updateDetails.put("side", side);
             updateDetails.put("notionalValueUSD", round2dp.apply(notionalValueUSD));
+
             if (side == TradeSide.BUY) {
                 updateDetails.put("currentBuyNotional", round2dp.apply(desk.getCurrentBuyNotional()));
+                updateDetails.put("buyUtilizationPercentage", round2dp.apply(desk.getBuyUtilizationPercentage()));
+                updateDetails.put("buyNotionalLimit", desk.getBuyNotionalLimit());
             } else if (side == TradeSide.SELL) {
                 updateDetails.put("currentSellNotional", round2dp.apply(desk.getCurrentSellNotional()));
+                updateDetails.put("sellUtilizationPercentage", round2dp.apply(desk.getSellUtilizationPercentage()));
+                updateDetails.put("sellNotionalLimit", desk.getSellNotionalLimit());
             }
+
+            updateDetails.put("grossUtilizationPercentage", round2dp.apply(desk.getGrossUtilizationPercentage()));
             updateDetails.put("currentGrossNotional", round2dp.apply(desk.getCurrentGrossNotional()));
+            updateDetails.put("grossNotionalLimit", desk.getGrossNotionalLimit());
+
             String message = objectMapper.writeValueAsString(updateDetails);
             ampsMessageOutboundProcessor.publishNotionalUpdate(message);
             log.info("Published notional update message: {}", message);
