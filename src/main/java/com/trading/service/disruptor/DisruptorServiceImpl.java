@@ -29,20 +29,11 @@ public class DisruptorServiceImpl implements DisruptorService
     {
         this.name = name;
         counter = 0;
-        // The factory for the event
         OrderEventFactory factory = new OrderEventFactory();
-
-        // Construct the Disruptor
-        disruptor = new Disruptor<>(factory, bufferSize,
-                DaemonThreadFactory.INSTANCE, ProducerType.SINGLE, new BusySpinWaitStrategy());
-
+        disruptor = new Disruptor<>(factory, bufferSize, DaemonThreadFactory.INSTANCE, ProducerType.SINGLE, new BusySpinWaitStrategy());
         disruptor.handleEventsWith(actionEventHandler);
-
-        // Start the Disruptor, starts all threads running
         disruptor.start();
         logger.info("Started " + name + " disruptor.");
-
-        // Get the ring buffer from the Disruptor to be used for publishing.
         RingBuffer<OrderEvent> ringBuffer = disruptor.getRingBuffer();
         producer = new DisruptorEventProducer(ringBuffer);
         logger.info("Instantiated producer for " + name + " disruptor.");

@@ -29,7 +29,6 @@ public class NotionalLimitService {
 
     @PostConstruct
     public void initialize() {
-
         disruptorService.start("NotionalLimitService", orderEventHandler);
     }
 

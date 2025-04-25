@@ -114,7 +114,6 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             updateDetails.put("notionalValueUSD", round2dp.apply(notionalValueUSD));
 
             if (side == TradeSide.BUY) {
-                // TODO publish desk, trader, limits and zero notional and utilizations at startup.
                 updateDetails.put("currentBuyNotional", round2dp.apply(desk.getCurrentBuyNotional()));
                 updateDetails.put("buyUtilizationPercentage", round2dp.apply(desk.getBuyUtilizationPercentage()));
                 updateDetails.put("buyNotionalLimit", desk.getBuyNotionalLimit());

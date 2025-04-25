@@ -46,9 +46,9 @@ public class InitializationService {
             initialDetails.put("sellUtilizationPercentage", 0);
             initialDetails.put("grossUtilizationPercentage", 0);
 
-            initialDetails.put("deskBuyNotionalLimit", desk.getBuyNotionalLimit());
-            initialDetails.put("deskSellNotionalLimit", desk.getSellNotionalLimit());
-            initialDetails.put("deskGrossNotionalLimit", desk.getGrossNotionalLimit());
+            initialDetails.put("buyNotionalLimit", desk.getBuyNotionalLimit());
+            initialDetails.put("sellNotionalLimit", desk.getSellNotionalLimit());
+            initialDetails.put("grossNotionalLimit", desk.getGrossNotionalLimit());
             return objectMapper.writeValueAsString(initialDetails);
         } catch (Exception e) {
             log.error("Failed to create breach message desk: {}", desk, e);
