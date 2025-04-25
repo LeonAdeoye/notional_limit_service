@@ -157,4 +157,8 @@ public class TradingPersistenceService {
     public List<Trader> getAllTraders() {
         return new ArrayList<>(traderCache.values());
     }
+
+    public Desk getDeskById(UUID deskId) {
+        return deskCache.get(deskId);
+    }
 }

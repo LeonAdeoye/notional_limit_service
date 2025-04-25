@@ -70,6 +70,13 @@ public class InitializationService {
             initialDetails.put("buyUtilizationPercentage", 0);
             initialDetails.put("sellUtilizationPercentage", 0);
             initialDetails.put("grossUtilizationPercentage", 0);
+
+            Desk desk = persistenceService.getDeskById(trader.getDeskId());
+            initialDetails.put("deskName", desk.getName());
+            initialDetails.put("buyNotionalLimit", desk.getBuyNotionalLimit());
+            initialDetails.put("sellNotionalLimit", desk.getSellNotionalLimit());
+            initialDetails.put("grossNotionalLimit", desk.getGrossNotionalLimit());
+
             return objectMapper.writeValueAsString(initialDetails);
         } catch (Exception e) {
             log.error("Failed to create initial message for trader: {}", trader, e);
