@@ -33,7 +33,6 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
     private static final double ROUNDING_FACTOR = Math.pow(10, 2);
     private static final Function<Double, Double> round2dp = (value) -> Math.round(value * ROUNDING_FACTOR) / ROUNDING_FACTOR;
 
-
     @Override
     public void onEvent(OrderEvent event, long sequence, boolean endOfBatch) {
         try {
@@ -115,6 +114,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             updateDetails.put("notionalValueUSD", round2dp.apply(notionalValueUSD));
 
             if (side == TradeSide.BUY) {
+                // TODO publish desk, trader, limits and zero notional and utilizations at startup.
                 updateDetails.put("currentBuyNotional", round2dp.apply(desk.getCurrentBuyNotional()));
                 updateDetails.put("buyUtilizationPercentage", round2dp.apply(desk.getBuyUtilizationPercentage()));
                 updateDetails.put("buyNotionalLimit", desk.getBuyNotionalLimit());
