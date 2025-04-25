@@ -24,6 +24,9 @@ public class NotionalLimitService {
     @Autowired
     private DisruptorService disruptorService;
 
+    @Autowired
+    private final InitializationService initializationService;
+
     @PostConstruct
     public void initialize() {
 
