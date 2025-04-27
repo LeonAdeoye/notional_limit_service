@@ -4,6 +4,7 @@ import com.crankuptheamps.client.Client;
 import com.crankuptheamps.client.Message;
 import com.crankuptheamps.client.MessageHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.trading.model.Desk;
 import com.trading.model.Order;
 import com.trading.service.NotionalLimitService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,9 @@ import org.springframework.stereotype.Component;
 import com.trading.validation.OrderMessageValidator;
 import com.trading.validation.ValidationResult;
 import org.slf4j.MDC;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import javax.annotation.PostConstruct;
@@ -31,6 +35,9 @@ public class AmpsMessageInboundProcessor implements MessageHandler {
     
     @Value("${amps.topic.orders}")
     private String ordersTopic;
+
+    @Value("${amps.topic.gui.initialization}")
+    private String guiInitializationRequestsTopic;
     
     @Autowired
     private final NotionalLimitService notionalLimitService;
@@ -49,11 +56,9 @@ public class AmpsMessageInboundProcessor implements MessageHandler {
             ampsClient = new Client(ampsClientName);
             ampsClient.connect(ampsServerUrl);
             ampsClient.logon();
-            //ampsClient.subscribe(ordersTopic);
             for(Message message : (ampsClient.subscribe(ordersTopic))) {
                 invoke(message);
             }
-            log.info("Successfully initialized AMPS client and subscribed to topic: {}", ordersTopic);
         } catch (Exception e) {
             log.error("ERR-007: Failed to initialize AMPS client", e);
             throw e;

@@ -49,13 +49,4 @@ public class AmpsMessageOutboundProcessor {
             log.error("ERR-903: Failed to publish notional update message: {}", notionalUpdateMessage, e);
         }
     }
-
-    public void publishInitialMessage(String initialMessage) {
-        try {
-            ampsClient.publish(notionalUpdateTopic, initialMessage);
-            log.info("Published notional update message: {}", initialMessage);
-        } catch (Exception e) {
-            log.error("ERR-903: Failed to publish notional update message: {}", initialMessage, e);
-        }
-    }
 }
