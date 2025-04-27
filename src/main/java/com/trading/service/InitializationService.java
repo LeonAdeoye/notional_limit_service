@@ -30,7 +30,7 @@ public class InitializationService {
     @Value("${amps.topic.gui.initialization.request}")
     private String guiInitializationRequestTopic;
     @Autowired
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     @Autowired
     private final OrderMessageValidator messageValidator;
     private Client ampsClient;
@@ -45,8 +45,9 @@ public class InitializationService {
             ampsClient = new Client(ampsClientName);
             ampsClient.connect(ampsServerUrl);
             ampsClient.logon();
-            for(Message request : (ampsClient.subscribe(guiInitializationRequestTopic))) {
-                handle(request);
+            for(Message requestMessage : (ampsClient.subscribe(guiInitializationRequestTopic))) {
+                Map<String, Object> msg = objectMapper.readValue(requestMessage.getData(), Map.class);
+                handleRequest(msg.get("requestId").toString());
             }
         } catch (Exception e) {
             log.error("ERR-771: Failed to initialize AMPS client", e);
@@ -54,24 +55,12 @@ public class InitializationService {
         }
     }
 
-    private void handle(Message message) {
+    private void handleRequest(String requestId) {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
-
         try {
-            Map<String, Object> request = objectMapper.readValue(message.getData(), Map.class);
-            String requestId = (String) request.get("requestId");
-            ObjectMapper objectMapper = new ObjectMapper();
-            log.info("Publishing initial desk messages to AMPS.");
-
-            for (Desk desk : persistenceService.getAllDesks()) {
-                ampsMessageOutboundProcessor.publishNotionalUpdate(createDeskInitialMessage(objectMapper, desk, requestId));
-            }
-
-            log.info("Publishing initial trader messages to AMPS.");
-            for (Trader trader : persistenceService.getAllTraders()) {
-                ampsMessageOutboundProcessor.publishNotionalUpdate(createTraderInitialMessage(objectMapper, trader, requestId));
-            }
+            persistenceService.getAllDesks().forEach(desk -> ampsMessageOutboundProcessor.publishNotionalUpdate(createDeskInitialMessage(objectMapper, desk, requestId)));
+            persistenceService.getAllTraders().forEach(trader -> ampsMessageOutboundProcessor.publishNotionalUpdate(createTraderInitialMessage(objectMapper, trader, requestId)));
         } catch (Exception e) {
             log.error("ERR-772: Failed to process GUI initialization request", e);
         } finally {
