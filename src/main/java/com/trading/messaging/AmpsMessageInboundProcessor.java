@@ -4,7 +4,6 @@ import com.crankuptheamps.client.Client;
 import com.crankuptheamps.client.Message;
 import com.crankuptheamps.client.MessageHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.trading.model.Desk;
 import com.trading.model.Order;
 import com.trading.service.NotionalLimitService;
 import lombok.RequiredArgsConstructor;
@@ -14,9 +13,6 @@ import org.springframework.stereotype.Component;
 import com.trading.validation.OrderMessageValidator;
 import com.trading.validation.ValidationResult;
 import org.slf4j.MDC;
-
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import javax.annotation.PostConstruct;
@@ -29,25 +25,16 @@ public class AmpsMessageInboundProcessor implements MessageHandler {
     
     @Value("${amps.server.url}")
     private String ampsServerUrl;
-    
     @Value("${amps.client.name}")
     private String ampsClientName;
-    
     @Value("${amps.topic.orders}")
     private String ordersTopic;
-
-    @Value("${amps.topic.gui.initialization}")
-    private String guiInitializationRequestsTopic;
-    
     @Autowired
     private final NotionalLimitService notionalLimitService;
-    
     @Autowired
     private final ObjectMapper objectMapper;
-    
     @Autowired
     private final OrderMessageValidator messageValidator;
-    
     private Client ampsClient;
     
     @PostConstruct

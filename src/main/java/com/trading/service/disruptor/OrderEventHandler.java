@@ -90,7 +90,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         else
             desk.setCurrentSellNotional(updatedNotional);
 
-        publishNotionalUpdate(desk, side, notionalValueUSD);
+        publishDeskNotionalUpdate(desk, side, notionalValueUSD);
         checkLimitBreaches(desk, order);
     }
 
@@ -105,7 +105,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         desk.setCurrentGrossNotional(grossTotal);
     }
 
-    private void publishNotionalUpdate(Desk desk, TradeSide side, double notionalValueUSD) {
+    private void publishDeskNotionalUpdate(Desk desk, TradeSide side, double notionalValueUSD) {
         try {
             Map<String, Object> updateDetails = new HashMap<>();
             updateDetails.put("deskId", desk.getId());
@@ -128,7 +128,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             updateDetails.put("grossNotionalLimit", desk.getGrossNotionalLimit());
 
             String message = objectMapper.writeValueAsString(updateDetails);
-            ampsMessageOutboundProcessor.publishNotionalUpdate(message);
+            ampsMessageOutboundProcessor.publishDeskNotionalUpdate(message);
             log.info("Published notional update message: {}", message);
         } catch (Exception e) {
             log.error("Failed to publish notional update message", e);

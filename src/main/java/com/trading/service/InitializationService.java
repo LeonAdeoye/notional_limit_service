@@ -1,7 +1,5 @@
 package com.trading.service;
 
-import com.crankuptheamps.client.Client;
-import com.crankuptheamps.client.Message;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trading.messaging.AmpsMessageOutboundProcessor;
 import com.trading.model.Desk;
@@ -10,68 +8,31 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import com.trading.validation.OrderMessageValidator;
-import org.slf4j.MDC;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import javax.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
 
 @Component
 @RequiredArgsConstructor
 public class InitializationService {
     private static final Logger log = LoggerFactory.getLogger(InitializationService.class);
-    @Value("${amps.server.url}")
-    private String ampsServerUrl;
-    @Value("${amps.client.name}")
-    private String ampsClientName;
-    @Value("${amps.topic.gui.initialization.request}")
-    private String guiInitializationRequestTopic;
     @Autowired
     private final ObjectMapper objectMapper = new ObjectMapper();
-    @Autowired
-    private final OrderMessageValidator messageValidator;
-    private Client ampsClient;
     @Autowired
     private final TradingPersistenceService persistenceService;
     @Autowired
     AmpsMessageOutboundProcessor ampsMessageOutboundProcessor;
 
     @PostConstruct
-    public void initialize() throws Exception {
-        try {
-            ampsClient = new Client(ampsClientName);
-            ampsClient.connect(ampsServerUrl);
-            ampsClient.logon();
-            for(Message requestMessage : (ampsClient.subscribe(guiInitializationRequestTopic))) {
-                Map<String, Object> msg = objectMapper.readValue(requestMessage.getData(), Map.class);
-                handleRequest(msg.get("requestId").toString());
-            }
-        } catch (Exception e) {
-            log.error("ERR-771: Failed to initialize AMPS client", e);
-            throw e;
-        }
+    public void initialize() {
+        persistenceService.getAllDesks().forEach(desk -> ampsMessageOutboundProcessor.publishDeskNotionalUpdate(createDeskInitialMessage(objectMapper, desk)));
+        persistenceService.getAllTraders().forEach(trader -> ampsMessageOutboundProcessor.publishTraderNotionalUpdate(createTraderInitialMessage(objectMapper, trader)));
     }
 
-    private void handleRequest(String requestId) {
-        String errorId = UUID.randomUUID().toString();
-        MDC.put("errorId", errorId);
-        try {
-            persistenceService.getAllDesks().forEach(desk -> ampsMessageOutboundProcessor.publishNotionalUpdate(createDeskInitialMessage(objectMapper, desk, requestId)));
-            persistenceService.getAllTraders().forEach(trader -> ampsMessageOutboundProcessor.publishNotionalUpdate(createTraderInitialMessage(objectMapper, trader, requestId)));
-        } catch (Exception e) {
-            log.error("ERR-772: Failed to process GUI initialization request", e);
-        } finally {
-            MDC.remove("errorId");
-        }
-    }
-
-    private String createDeskInitialMessage(ObjectMapper objectMapper, Desk desk, String requestId) {
+    private String createDeskInitialMessage(ObjectMapper objectMapper, Desk desk) {
         try {
             Map<String, Object> initialDetails = new HashMap<>();
-            initialDetails.put("requestId", requestId);
             initialDetails.put("deskId", desk.getId());
             initialDetails.put("deskName", desk.getName());
 
@@ -93,10 +54,9 @@ public class InitializationService {
         }
     }
 
-    private String createTraderInitialMessage(ObjectMapper objectMapper, Trader trader, String requestId) {
+    private String createTraderInitialMessage(ObjectMapper objectMapper, Trader trader) {
         try {
             Map<String, Object> initialDetails = new HashMap<>();
-            initialDetails.put("requestId", requestId);
             initialDetails.put("traderId", trader.getId());
             initialDetails.put("traderName", trader.getName());
             initialDetails.put("deskId", trader.getDeskId());

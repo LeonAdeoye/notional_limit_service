@@ -17,9 +17,10 @@ public class AmpsMessageOutboundProcessor {
     private String ampsClientName;
     @Value("${amps.topic.limit.breach}")
     private String limitBreachTopic;
-
-    @Value("${amps.topic.notional.update}")
-    private String notionalUpdateTopic;
+    @Value("${amps.topic.desk.notional.update}")
+    private String deskNotionalUpdateTopic;
+    @Value("${amps.topic.trader.notional.update}")
+    private String traderNotionalUpdateTopic;
 
     @PostConstruct
     public void initialize() throws Exception {
@@ -41,12 +42,21 @@ public class AmpsMessageOutboundProcessor {
         }
     }
 
-    public void publishNotionalUpdate(String notionalUpdateMessage) {
+    public void publishDeskNotionalUpdate(String notionalUpdateMessage) {
         try {
-            ampsClient.publish(notionalUpdateTopic, notionalUpdateMessage);
-            log.info("Published notional update message: {}", notionalUpdateMessage);
+            ampsClient.publish(deskNotionalUpdateTopic, notionalUpdateMessage);
+            log.info("Published desk notional update message: {}", notionalUpdateMessage);
         } catch (Exception e) {
-            log.error("ERR-903: Failed to publish notional update message: {}", notionalUpdateMessage, e);
+            log.error("ERR-903: Failed to publish desk notional update message: {}", notionalUpdateMessage, e);
+        }
+    }
+
+    public void publishTraderNotionalUpdate(String notionalUpdateMessage) {
+        try {
+            ampsClient.publish(traderNotionalUpdateTopic, notionalUpdateMessage);
+            log.info("Published trader notional update message: {}", notionalUpdateMessage);
+        } catch (Exception e) {
+            log.error("ERR-904: Failed to publish trader notional update message: {}", notionalUpdateMessage, e);
         }
     }
 }
