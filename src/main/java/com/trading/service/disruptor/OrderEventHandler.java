@@ -72,6 +72,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         double currentNotional = (side == TradeSide.BUY) ? desk.getCurrentBuyNotional() : desk.getCurrentSellNotional();
         double limit = (side == TradeSide.BUY) ? desk.getBuyNotionalLimit() : desk.getSellNotionalLimit();
         double updatedNotional = currentNotional + notionalValueUSD;
+        Trader trader = persistenceService.getTrader(order.traderId());
 
         if (updatedNotional > limit) {
             log.info("REJECTION => Order notional: {} causes a {} {} notional limit breach for desk: {} with a current {} notional: {}",
@@ -85,24 +86,31 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         log.debug("ACCEPTED => Updated current {} notional for desk: {} from: {} to: {} using new {} order's notional: {}",
                 sideStr, desk.getName(), round2dp.apply(currentNotional), round2dp.apply(updatedNotional), sideStr, round2dp.apply(notionalValueUSD));
 
-        if (side == TradeSide.BUY)
+        if (side == TradeSide.BUY) {
             desk.setCurrentBuyNotional(updatedNotional);
-        else
+            trader.setCurrentBuyNotional(updatedNotional);
+        } else {
             desk.setCurrentSellNotional(updatedNotional);
+            trader.setCurrentSellNotional(updatedNotional);
+        }
 
         publishDeskNotionalUpdate(desk, side, notionalValueUSD);
+        publishTraderNotionalUpdate(trader, side, notionalValueUSD);
         checkLimitBreaches(desk, order);
     }
 
     private void checkGrossNotionalLimit(Desk desk, Order order, double notionalValueUSD) {
-        double grossTotal = desk.getCurrentGrossNotional() + notionalValueUSD;
-        if(grossTotal > desk.getGrossNotionalLimit()) {
+        Trader trader = persistenceService.getTrader(order.traderId());
+        double deskGrossTotal = desk.getCurrentGrossNotional() + notionalValueUSD;
+        double traderGrossTotal = trader.getCurrentGrossNotional() + notionalValueUSD;
+        if(deskGrossTotal > desk.getGrossNotionalLimit()) {
             log.info("REJECTION => Order notional: {} causes a {} gross notional limit 100% breach for desk: {} with a current gross notional: {}", round2dp.apply(notionalValueUSD), desk.getGrossNotionalLimit(), desk.getName(), round2dp.apply(desk.getCurrentGrossNotional()));
             String message = createBreachMessage(objectMapper, "Full Gross limit", desk, order, 100);
             if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
             return;
         }
-        desk.setCurrentGrossNotional(grossTotal);
+        desk.setCurrentGrossNotional(deskGrossTotal);
+        trader.setCurrentGrossNotional(traderGrossTotal);
     }
 
     private void publishDeskNotionalUpdate(Desk desk, TradeSide side, double notionalValueUSD) {
@@ -129,7 +137,37 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
 
             String message = objectMapper.writeValueAsString(updateDetails);
             ampsMessageOutboundProcessor.publishDeskNotionalUpdate(message);
-            log.info("Published notional update message: {}", message);
+        } catch (Exception e) {
+            log.error("Failed to publish notional update message", e);
+        }
+    }
+
+    private void publishTraderNotionalUpdate(Trader trader, TradeSide side, double notionalValueUSD) {
+        try {
+            Map<String, Object> updateDetails = new HashMap<>();
+            updateDetails.put("traderId", trader.getId());
+            updateDetails.put("traderName", trader.getName());
+            Desk desk = persistenceService.getDesk(trader.getDeskId());
+
+            updateDetails.put("side", side);
+            updateDetails.put("notionalValueUSD", round2dp.apply(notionalValueUSD));
+
+            if (side == TradeSide.BUY) {
+                updateDetails.put("currentBuyNotional", round2dp.apply(trader.getCurrentBuyNotional()));
+                updateDetails.put("buyUtilizationPercentage", round2dp.apply(100 * trader.getCurrentBuyNotional()/desk.getBuyNotionalLimit()));
+                updateDetails.put("buyNotionalLimit", desk.getBuyNotionalLimit());
+            } else if (side == TradeSide.SELL) {
+                updateDetails.put("currentSellNotional", round2dp.apply(trader.getCurrentSellNotional()));
+                updateDetails.put("sellUtilizationPercentage", round2dp.apply(100 * trader.getCurrentSellNotional()/desk.getSellNotionalLimit()));
+                updateDetails.put("sellNotionalLimit", desk.getSellNotionalLimit());
+            }
+
+            updateDetails.put("grossUtilizationPercentage", round2dp.apply(100 * trader.getCurrentGrossNotional()/desk.getGrossNotionalLimit()));
+            updateDetails.put("currentGrossNotional", round2dp.apply(trader.getCurrentGrossNotional()));
+            updateDetails.put("grossNotionalLimit", desk.getGrossNotionalLimit());
+
+            String message = objectMapper.writeValueAsString(updateDetails);
+            ampsMessageOutboundProcessor.publishTraderNotionalUpdate(message);
         } catch (Exception e) {
             log.error("Failed to publish notional update message", e);
         }

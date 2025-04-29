@@ -37,8 +37,8 @@ public class Desk {
         this.name = test_desk;
     }
 
-    public Desk(UUID id, String name, double buyNotionalLimit, double sellNotionalLimit, double grossNotionalLimit) {
-        this.id = id;
+    public Desk(UUID deskId, String name, double buyNotionalLimit, double sellNotionalLimit, double grossNotionalLimit) {
+        this.id = deskId;
         this.name = name;
         this.buyNotionalLimit = buyNotionalLimit;
         this.sellNotionalLimit = sellNotionalLimit;

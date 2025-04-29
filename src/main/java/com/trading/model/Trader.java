@@ -19,8 +19,12 @@ public class Trader {
     @NotNull(message = "Desk ID is required")
     private UUID deskId;
 
-    public Trader(UUID id, String name, UUID deskId) {
-        this.id = id;
+    private double currentBuyNotional;
+    private double currentSellNotional;
+    private double currentGrossNotional;
+
+    public Trader(UUID traderId, String name, UUID deskId) {
+        this.id = traderId;
         this.name = name;
         this.deskId = deskId;
     }
