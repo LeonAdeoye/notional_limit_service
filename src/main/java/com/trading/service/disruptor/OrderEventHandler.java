@@ -148,6 +148,8 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             updateDetails.put("traderId", trader.getId());
             updateDetails.put("traderName", trader.getName());
             Desk desk = persistenceService.getDesk(trader.getDeskId());
+            updateDetails.put("deskId", desk.getId());
+            updateDetails.put("deskName", desk.getName());
 
             updateDetails.put("side", side);
             updateDetails.put("notionalValueUSD", round2dp.apply(notionalValueUSD));
