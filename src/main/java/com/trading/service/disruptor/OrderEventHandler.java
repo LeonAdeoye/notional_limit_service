@@ -57,8 +57,10 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         }
 
         double notionalValueUSD = calculateUSDNotional(order);
-        checkSideNotionalLimit(desk, order, notionalValueUSD);
-        checkGrossNotionalLimit(desk, order, notionalValueUSD);
+        checkSideNotionalLimit(trader, desk, order, notionalValueUSD);
+        checkGrossNotionalLimit(trader, desk, order, notionalValueUSD);
+        publishTraderNotionalUpdate(trader, order.side(), notionalValueUSD);
+        publishDeskNotionalUpdate(desk, order.side(), notionalValueUSD);
     }
 
     private double calculateUSDNotional(Order order) {
@@ -66,13 +68,12 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         return currencyManager.convertToUSD(localNotional, order.currency());
     }
 
-    private void checkSideNotionalLimit(Desk desk, Order order, double notionalValueUSD) {
+    private void checkSideNotionalLimit(Trader trader, Desk desk, Order order, double notionalValueUSD) {
         TradeSide side = order.side();
         String sideStr = side.toString();
         double currentNotional = (side == TradeSide.BUY) ? desk.getCurrentBuyNotional() : desk.getCurrentSellNotional();
         double limit = (side == TradeSide.BUY) ? desk.getBuyNotionalLimit() : desk.getSellNotionalLimit();
         double updatedNotional = currentNotional + notionalValueUSD;
-        Trader trader = persistenceService.getTrader(order.traderId());
 
         if (updatedNotional > limit) {
             log.info("REJECTION => Order notional: {} causes a {} {} notional limit breach for desk: {} with a current {} notional: {}",
@@ -94,13 +95,10 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             trader.setCurrentSellNotional(updatedNotional);
         }
 
-        publishDeskNotionalUpdate(desk, side, notionalValueUSD);
-        publishTraderNotionalUpdate(trader, side, notionalValueUSD);
         checkLimitBreaches(desk, order);
     }
 
-    private void checkGrossNotionalLimit(Desk desk, Order order, double notionalValueUSD) {
-        Trader trader = persistenceService.getTrader(order.traderId());
+    private void checkGrossNotionalLimit(Trader trader, Desk desk, Order order, double notionalValueUSD) {
         double deskGrossTotal = desk.getCurrentGrossNotional() + notionalValueUSD;
         double traderGrossTotal = trader.getCurrentGrossNotional() + notionalValueUSD;
         if(deskGrossTotal > desk.getGrossNotionalLimit()) {
@@ -147,10 +145,9 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             Map<String, Object> updateDetails = new HashMap<>();
             updateDetails.put("traderId", trader.getId());
             updateDetails.put("traderName", trader.getName());
+            updateDetails.put("deskId", trader.getDeskId());
             Desk desk = persistenceService.getDesk(trader.getDeskId());
-            updateDetails.put("deskId", desk.getId());
             updateDetails.put("deskName", desk.getName());
-
             updateDetails.put("side", side);
             updateDetails.put("notionalValueUSD", round2dp.apply(notionalValueUSD));
 
