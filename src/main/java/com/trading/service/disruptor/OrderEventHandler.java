@@ -195,16 +195,21 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
     private String createBreachMessage(ObjectMapper objectMapper, String breachType, Desk desk, Order order, int limitPercentage) {
         try {
             Map<String, Object> breachDetails = new HashMap<>();
-            breachDetails.put("BreachType", breachType);
+            breachDetails.put("breachType", breachType);
             breachDetails.put("limitPercentage", limitPercentage);
 
             breachDetails.put("deskId", desk.getId());
             breachDetails.put("deskName", desk.getName());
 
             breachDetails.put("orderId", order.id());
-            breachDetails.put("orderTraderId", order.traderId());
-            breachDetails.put("orderSymbol", order.symbol());
-            breachDetails.put("orderSide", order.side());
+            breachDetails.put("traderId", order.traderId());
+            breachDetails.put("traderName", persistenceService.getTrader(order.traderId()).getName());
+            breachDetails.put("symbol", order.symbol());
+            breachDetails.put("side", order.side());
+            breachDetails.put("quantity", order.quantity());
+            breachDetails.put("price", round2dp.apply(order.price()));
+            breachDetails.put("currency", order.currency());
+            breachDetails.put("notionalLocal", round2dp.apply(order.getNotionalValue()));
 
             breachDetails.put("currentBuyNotional", round2dp.apply(desk.getCurrentBuyNotional()));
             breachDetails.put("currentSellNotional", round2dp.apply(desk.getCurrentSellNotional()));
@@ -212,11 +217,11 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             breachDetails.put("buyUtilizationPercentage", round2dp.apply(desk.getBuyUtilizationPercentage()));
             breachDetails.put("sellUtilizationPercentage", round2dp.apply(desk.getSellUtilizationPercentage()));
             breachDetails.put("grossUtilizationPercentage", round2dp.apply(desk.getGrossUtilizationPercentage()));
-            breachDetails.put("orderNotionalUSD", round2dp.apply(calculateUSDNotional(order)));
+            breachDetails.put("notionalUSD", round2dp.apply(calculateUSDNotional(order)));
 
-            breachDetails.put("deskBuyNotionalLimit", desk.getBuyNotionalLimit());
-            breachDetails.put("deskSellNotionalLimit", desk.getSellNotionalLimit());
-            breachDetails.put("deskGrossNotionalLimit", desk.getGrossNotionalLimit());
+            breachDetails.put("buyNotionalLimit", desk.getBuyNotionalLimit());
+            breachDetails.put("sellNotionalLimit", desk.getSellNotionalLimit());
+            breachDetails.put("grossNotionalLimit", desk.getGrossNotionalLimit());
             return objectMapper.writeValueAsString(breachDetails);
         } catch (Exception e) {
             log.error("Failed to create breach message desk: {}", desk, e);
