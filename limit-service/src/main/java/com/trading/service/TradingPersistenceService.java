@@ -1,15 +1,16 @@
 package com.trading.service;
 
-import com.trading.model.Desk;
 import com.trading.model.Trader;
 import com.trading.repository.DeskRepository;
 import com.trading.repository.TraderRepository;
+import com.trading.model.Desk;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;

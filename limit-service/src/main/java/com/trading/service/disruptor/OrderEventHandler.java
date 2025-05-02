@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -46,13 +47,13 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
     private void processOrder(Order order) {
         Trader trader = persistenceService.getTrader(order.traderId());
         if (trader == null) {
-            log.error("ERR-001: Trader not found with ID: {}", order.traderId());
+            log.error("ERR-884: Trader not found with ID: {}", order.traderId());
             throw new IllegalArgumentException("Trader not found");
         }
 
         Desk desk = persistenceService.getDesk(trader.getDeskId());
         if (desk == null) {
-            log.error("ERR-002: Desk not found with ID: {}", trader.getDeskId());
+            log.error("ERR-885: Desk not found with ID: {}", trader.getDeskId());
             throw new IllegalArgumentException("Desk not found");
         }
 
@@ -136,7 +137,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             String message = objectMapper.writeValueAsString(updateDetails);
             ampsMessageOutboundProcessor.publishDeskNotionalUpdate(message);
         } catch (Exception e) {
-            log.error("Failed to publish notional update message", e);
+            log.error("ERR-880: Failed to publish notional update message", e);
         }
     }
 
@@ -168,7 +169,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             String message = objectMapper.writeValueAsString(updateDetails);
             ampsMessageOutboundProcessor.publishTraderNotionalUpdate(message);
         } catch (Exception e) {
-            log.error("Failed to publish notional update message", e);
+            log.error("ERR-881: Failed to publish notional update message", e);
         }
     }
 
@@ -224,7 +225,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             breachDetails.put("grossNotionalLimit", desk.getGrossNotionalLimit());
             return objectMapper.writeValueAsString(breachDetails);
         } catch (Exception e) {
-            log.error("Failed to create breach message desk: {}", desk, e);
+            log.error("ERR-882: Failed to create breach message desk: {}", desk, e);
             return "";
         }
     }
