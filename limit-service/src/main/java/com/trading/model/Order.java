@@ -1,6 +1,6 @@
 package com.trading.model;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record Order (
@@ -11,7 +11,7 @@ public record Order (
     double price,
     TradeSide side,
     Currency currency,
-    LocalDate tradeDate ) {
+    LocalDateTime tradeTimestamp ) {
     
     public double getNotionalValue() {
         return quantity * price;

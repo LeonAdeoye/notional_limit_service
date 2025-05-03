@@ -55,8 +55,8 @@ public class OrderMessageValidator {
                 errors.append("Trade side is required. ");
             }
             
-            if (order.tradeDate() == null) {
-                errors.append("Trade date is required. ");
+            if (order.tradeTimestamp() == null) {
+                errors.append("Trade timestamp is required. ");
             }
             
             if (order.currency() == null) {

@@ -11,7 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -38,7 +38,7 @@ class OrderMessageValidatorTest {
         // Arrange
         UUID id = UUID.randomUUID();
         UUID traderId = UUID.randomUUID();
-        validOrder = new Order(id, traderId, "AAPL", 100, 150.0, TradeSide.BUY, Currency.USD, LocalDate.now());
+        validOrder = new Order(id, traderId, "AAPL", 100, 150.0, TradeSide.BUY, Currency.USD, LocalDateTime.now());
         validOrderJson = "{\"valid\":\"json\"}";
     }
 
@@ -75,7 +75,7 @@ class OrderMessageValidatorTest {
         // Arrange
         UUID id = UUID.randomUUID();
         UUID traderId = UUID.randomUUID();
-        validOrder = new Order(id, traderId, "AAPL", 100, -100.0, TradeSide.BUY, Currency.USD, LocalDate.now());
+        validOrder = new Order(id, traderId, "AAPL", 100, -100.0, TradeSide.BUY, Currency.USD, LocalDateTime.now());
         when(objectMapper.readValue(anyString(), eq(Order.class))).thenReturn(validOrder);
 
         // Act
@@ -98,7 +98,7 @@ class OrderMessageValidatorTest {
         // Arrange
         UUID id = UUID.randomUUID();
         UUID traderId = UUID.randomUUID();
-        validOrder = new Order(id, traderId, "AAPL", 0, 500.0, TradeSide.BUY, Currency.USD, LocalDate.now());
+        validOrder = new Order(id, traderId, "AAPL", 0, 500.0, TradeSide.BUY, Currency.USD, LocalDateTime.now());
         when(objectMapper.readValue(anyString(), eq(Order.class))).thenReturn(validOrder);
 
         // Act
@@ -121,7 +121,7 @@ class OrderMessageValidatorTest {
         // Arrange
         UUID id = UUID.randomUUID();
         UUID traderId = UUID.randomUUID();
-        validOrder = new Order(id, traderId, null, 100, 150.0, TradeSide.BUY, Currency.USD, LocalDate.now());
+        validOrder = new Order(id, traderId, null, 100, 150.0, TradeSide.BUY, Currency.USD, LocalDateTime.now());
         when(objectMapper.readValue(anyString(), eq(Order.class))).thenReturn(validOrder);
 
         // Act

@@ -19,7 +19,7 @@ import org.slf4j.MDC;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -67,7 +67,7 @@ class AmpsMessageInboundProcessorTest {
         // Arrange
         UUID traderId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
-        testOrder = new Order(orderId, traderId, "AAPL", 100, 150.0, TradeSide.BUY, Currency.USD, LocalDate.now());
+        testOrder = new Order(orderId, traderId, "AAPL", 100, 150.0, TradeSide.BUY, Currency.USD, LocalDateTime.now());
         validMessageData = "{\"valid\":\"json\"}";
     }
 

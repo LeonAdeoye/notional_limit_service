@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -119,7 +119,7 @@ public class OrderGeneratorService {
                 currency = Currency.getInstance("KRW");
         }
 
-        return new Order(id, traderId, symbol, quantity, price, side, currency, LocalDate.now());
+        return new Order(id, traderId, symbol, quantity, price, side, currency, LocalDateTime.now());
     }
 
     private void sendOrder(Order order) {

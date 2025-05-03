@@ -1,6 +1,7 @@
 package com.trading.service.disruptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.lmax.disruptor.EventHandler;
 import com.trading.messaging.AmpsMessageOutboundProcessor;
 import com.trading.model.Desk;
@@ -15,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -30,7 +30,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
     private final CurrencyManager currencyManager;
     @Autowired
     private final AmpsMessageOutboundProcessor ampsMessageOutboundProcessor;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     private static final double ROUNDING_FACTOR = Math.pow(10, 2);
     private static final Function<Double, Double> round2dp = (value) -> Math.round(value * ROUNDING_FACTOR) / ROUNDING_FACTOR;
 
@@ -80,7 +80,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             log.info("REJECTION => Order notional: {} causes a {} {} notional limit breach for desk: {} with a current {} notional: {}",
                     round2dp.apply(notionalValueUSD), limit, sideStr, desk.getName(), sideStr, round2dp.apply(currentNotional));
 
-            String message = createBreachMessage(objectMapper, "Full " + sideStr + " limit", desk, order, 100);
+            String message = createBreachMessage("Full " + sideStr + " limit", desk, order, 100);
             if (!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
             return;
         }
@@ -104,7 +104,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         double traderGrossTotal = trader.getCurrentGrossNotional() + notionalValueUSD;
         if(deskGrossTotal > desk.getGrossNotionalLimit()) {
             log.info("REJECTION => Order notional: {} causes a {} gross notional limit 100% breach for desk: {} with a current gross notional: {}", round2dp.apply(notionalValueUSD), desk.getGrossNotionalLimit(), desk.getName(), round2dp.apply(desk.getCurrentGrossNotional()));
-            String message = createBreachMessage(objectMapper, "Full Gross limit", desk, order, 100);
+            String message = createBreachMessage( "Full Gross limit", desk, order, 100);
             if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
             return;
         }
@@ -177,25 +177,26 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         String message = "";
         for(int limitPercentage = 80; limitPercentage >= 20; limitPercentage -= 20) {
             if (desk.getGrossUtilizationPercentage() > limitPercentage) {
-                message = createBreachMessage(objectMapper, "Gross limit", desk, order, limitPercentage);
+                message = createBreachMessage( "Gross limit", desk, order, limitPercentage);
                 if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
             }
             if (desk.getBuyUtilizationPercentage() > limitPercentage) {
-                message = createBreachMessage(objectMapper, "Buy limit", desk, order, limitPercentage);
+                message = createBreachMessage( "Buy limit", desk, order, limitPercentage);
                 if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
                 break;
             }
             if (desk.getSellUtilizationPercentage() > limitPercentage) {
-                message = createBreachMessage(objectMapper, "Sell limit", desk, order, limitPercentage);
+                message = createBreachMessage( "Sell limit", desk, order, limitPercentage);
                 if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
                 break;
             }
         }
     }
 
-    private String createBreachMessage(ObjectMapper objectMapper, String breachType, Desk desk, Order order, int limitPercentage) {
+    private String createBreachMessage(String breachType, Desk desk, Order order, int limitPercentage) {
         try {
             Map<String, Object> breachDetails = new HashMap<>();
+
             breachDetails.put("breachType", breachType);
             breachDetails.put("limitPercentage", limitPercentage);
 
@@ -211,6 +212,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             breachDetails.put("price", round2dp.apply(order.price()));
             breachDetails.put("currency", order.currency());
             breachDetails.put("notionalLocal", round2dp.apply(order.getNotionalValue()));
+            breachDetails.put("tradeTimestamp", order.tradeTimestamp());
 
             breachDetails.put("currentBuyNotional", round2dp.apply(desk.getCurrentBuyNotional()));
             breachDetails.put("currentSellNotional", round2dp.apply(desk.getCurrentSellNotional()));
