@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.util.UUID;
@@ -19,20 +18,16 @@ import java.util.UUID;
 public class NotionalLimitService {
     private static final Logger log = LoggerFactory.getLogger(NotionalLimitService.class);
     private static int countOfOrders = 0;
-
     @Autowired
     private final OrderEventHandler orderEventHandler;
     @Autowired
     private DisruptorService disruptorService;
-
     @Autowired
     private final InitializationService initializationService;
-
     @PostConstruct
     public void initialize() {
         disruptorService.start("NotionalLimitService", orderEventHandler);
     }
-
     @PreDestroy
     public void shutdown() {
         log.info("Shutting down NotionalLimitService. Total orders processed: {}", countOfOrders);
@@ -42,7 +37,6 @@ public class NotionalLimitService {
     public void processOrder(Order order) {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
-        
         try {
             countOfOrders++;
             if(!isValidOrder(order)) {
