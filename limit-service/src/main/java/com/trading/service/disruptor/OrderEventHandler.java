@@ -180,12 +180,12 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
                 message = createBreachMessage( "Gross limit", desk, order, limitPercentage);
                 if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
             }
-            if (desk.getBuyUtilizationPercentage() > limitPercentage) {
+            if (order.side().equals(TradeSide.BUY) && desk.getBuyUtilizationPercentage() > limitPercentage) {
                 message = createBreachMessage( "Buy limit", desk, order, limitPercentage);
                 if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
                 break;
             }
-            if (desk.getSellUtilizationPercentage() > limitPercentage) {
+            if (order.side().equals(TradeSide.SELL) && desk.getSellUtilizationPercentage() > limitPercentage) {
                 message = createBreachMessage( "Sell limit", desk, order, limitPercentage);
                 if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
                 break;
