@@ -5,7 +5,8 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class ValidationResult {
+public class ValidationResult
+{
     private final boolean valid;
     private final String errorMessage;
 } 

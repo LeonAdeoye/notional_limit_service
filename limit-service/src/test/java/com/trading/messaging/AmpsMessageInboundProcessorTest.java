@@ -6,7 +6,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trading.model.Currency;
 import com.trading.model.Order;
-import com.trading.model.TradeSide;
 import com.trading.service.NotionalLimitService;
 import com.trading.validation.OrderMessageValidator;
 import com.trading.validation.ValidationResult;

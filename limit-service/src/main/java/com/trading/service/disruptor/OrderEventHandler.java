@@ -4,10 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.lmax.disruptor.EventHandler;
 import com.trading.messaging.AmpsMessageOutboundProcessor;
-import com.trading.model.Desk;
-import com.trading.model.Order;
-import com.trading.model.Trader;
-import com.trading.model.TradeSide;
+import com.trading.model.*;
 import com.trading.service.CurrencyManager;
 import com.trading.service.TradingPersistenceService;
 import lombok.RequiredArgsConstructor;
@@ -18,11 +15,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Component
 @RequiredArgsConstructor
-public class OrderEventHandler implements EventHandler<OrderEvent> {
+public class OrderEventHandler implements EventHandler<OrderEvent>
+{
     private static final Logger log = LoggerFactory.getLogger(OrderEventHandler.class);
     @Autowired
     private final TradingPersistenceService persistenceService;
@@ -35,24 +34,31 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
     private static final Function<Double, Double> round2dp = (value) -> Math.round(value * ROUNDING_FACTOR) / ROUNDING_FACTOR;
 
     @Override
-    public void onEvent(OrderEvent event, long sequence, boolean endOfBatch) {
-        try {
+    public void onEvent(OrderEvent event, long sequence, boolean endOfBatch)
+    {
+        try
+        {
             MDC.put("errorId", event.getErrorId());
             processOrder(event.getOrder());
-        } finally {
+        }
+        finally
+        {
             MDC.remove("errorId");
         }
     }
 
-    private void processOrder(Order order) {
-        Trader trader = persistenceService.getTrader(order.traderId());
-        if (trader == null) {
-            log.error("ERR-884: Trader not found with ID: {}", order.traderId());
+    private void processOrder(Order order)
+    {
+        Trader trader = persistenceService.getTrader(UUID.fromString(order.getOwnerId()));
+        if (trader == null)
+        {
+            log.error("ERR-884: Trader not found with ID: {}", order.getOwnerId());
             throw new IllegalArgumentException("Trader not found");
         }
 
         Desk desk = persistenceService.getDesk(trader.getDeskId());
-        if (desk == null) {
+        if (desk == null)
+        {
             log.error("ERR-885: Desk not found with ID: {}", trader.getDeskId());
             throw new IllegalArgumentException("Desk not found");
         }
@@ -60,23 +66,26 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         double notionalValueUSD = calculateUSDNotional(order);
         checkSideNotionalLimit(trader, desk, order, notionalValueUSD);
         checkGrossNotionalLimit(trader, desk, order, notionalValueUSD);
-        publishTraderNotionalUpdate(trader, order.side(), notionalValueUSD);
-        publishDeskNotionalUpdate(desk, order.side(), notionalValueUSD);
+        publishTraderNotionalUpdate(trader, order.getSide(), notionalValueUSD);
+        publishDeskNotionalUpdate(desk, order.getSide(), notionalValueUSD);
     }
 
-    private double calculateUSDNotional(Order order) {
-        double localNotional = order.getNotionalValue();
-        return currencyManager.convertToUSD(localNotional, order.currency());
+    private double calculateUSDNotional(Order order)
+    {
+        double localNotional = order.getOrderNotionalValueInLocal();
+        return currencyManager.convertToUSD(localNotional, Enum.valueOf(Currency.class, order.getSettlementCurrency()));
     }
 
-    private void checkSideNotionalLimit(Trader trader, Desk desk, Order order, double notionalValueUSD) {
-        TradeSide side = order.side();
+    private void checkSideNotionalLimit(Trader trader, Desk desk, Order order, double notionalValueUSD)
+    {
+        Side side = order.getSide();
         String sideStr = side.toString();
-        double currentNotional = (side == TradeSide.BUY) ? desk.getCurrentBuyNotional() : desk.getCurrentSellNotional();
-        double limit = (side == TradeSide.BUY) ? desk.getBuyNotionalLimit() : desk.getSellNotionalLimit();
+        double currentNotional = (side == Side.BUY) ? desk.getCurrentBuyNotional() : desk.getCurrentSellNotional();
+        double limit = (side == Side.BUY) ? desk.getBuyNotionalLimit() : desk.getSellNotionalLimit();
         double updatedNotional = currentNotional + notionalValueUSD;
 
-        if (updatedNotional > limit) {
+        if (updatedNotional > limit)
+        {
             log.info("REJECTION => Order notional: {} causes a {} {} notional limit breach for desk: {} with a current {} notional: {}",
                     round2dp.apply(notionalValueUSD), limit, sideStr, desk.getName(), sideStr, round2dp.apply(currentNotional));
 
@@ -88,10 +97,13 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         log.debug("ACCEPTED => Updated current {} notional for desk: {} from: {} to: {} using new {} order's notional: {}",
                 sideStr, desk.getName(), round2dp.apply(currentNotional), round2dp.apply(updatedNotional), sideStr, round2dp.apply(notionalValueUSD));
 
-        if (side == TradeSide.BUY) {
+        if (side == Side.BUY)
+        {
             desk.setCurrentBuyNotional(updatedNotional);
             trader.setCurrentBuyNotional(updatedNotional);
-        } else {
+        }
+        else
+        {
             desk.setCurrentSellNotional(updatedNotional);
             trader.setCurrentSellNotional(updatedNotional);
         }
@@ -99,10 +111,12 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         checkLimitBreaches(desk, order);
     }
 
-    private void checkGrossNotionalLimit(Trader trader, Desk desk, Order order, double notionalValueUSD) {
+    private void checkGrossNotionalLimit(Trader trader, Desk desk, Order order, double notionalValueUSD)
+    {
         double deskGrossTotal = desk.getCurrentGrossNotional() + notionalValueUSD;
         double traderGrossTotal = trader.getCurrentGrossNotional() + notionalValueUSD;
-        if(deskGrossTotal > desk.getGrossNotionalLimit()) {
+        if(deskGrossTotal > desk.getGrossNotionalLimit())
+        {
             log.info("REJECTION => Order notional: {} causes a {} gross notional limit 100% breach for desk: {} with a current gross notional: {}", round2dp.apply(notionalValueUSD), desk.getGrossNotionalLimit(), desk.getName(), round2dp.apply(desk.getCurrentGrossNotional()));
             String message = createBreachMessage( "Full Gross limit", desk, order, 100);
             if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
@@ -112,8 +126,10 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         trader.setCurrentGrossNotional(traderGrossTotal);
     }
 
-    private void publishDeskNotionalUpdate(Desk desk, TradeSide side, double notionalValueUSD) {
-        try {
+    private void publishDeskNotionalUpdate(Desk desk, Side side, double notionalValueUSD)
+    {
+        try
+        {
             Map<String, Object> updateDetails = new HashMap<>();
             updateDetails.put("deskId", desk.getId());
             updateDetails.put("deskName", desk.getName());
@@ -134,13 +150,17 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
 
             String message = objectMapper.writeValueAsString(updateDetails);
             ampsMessageOutboundProcessor.publishDeskNotionalUpdate(message);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("ERR-880: Failed to publish notional update message", e);
         }
     }
 
-    private void publishTraderNotionalUpdate(Trader trader, TradeSide side, double notionalValueUSD) {
-        try {
+    private void publishTraderNotionalUpdate(Trader trader, Side side, double notionalValueUSD)
+    {
+        try
+        {
             Map<String, Object> updateDetails = new HashMap<>();
             updateDetails.put("traderId", trader.getId());
             updateDetails.put("traderName", trader.getName());
@@ -164,24 +184,31 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
 
             String message = objectMapper.writeValueAsString(updateDetails);
             ampsMessageOutboundProcessor.publishTraderNotionalUpdate(message);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("ERR-881: Failed to publish notional update message", e);
         }
     }
 
-    private void checkLimitBreaches(Desk desk, Order order) {
+    private void checkLimitBreaches(Desk desk, Order order)
+    {
         String message = "";
-        for(int limitPercentage = 80; limitPercentage >= 20; limitPercentage -= 20) {
-            if (desk.getGrossUtilizationPercentage() > limitPercentage) {
+        for(int limitPercentage = 80; limitPercentage >= 20; limitPercentage -= 20)
+        {
+            if (desk.getGrossUtilizationPercentage() > limitPercentage)
+            {
                 message = createBreachMessage( "Gross limit", desk, order, limitPercentage);
                 if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
             }
-            if (order.side().equals(TradeSide.BUY) && desk.getBuyUtilizationPercentage() > limitPercentage) {
+            if (order.getSide().equals(Side.BUY) && desk.getBuyUtilizationPercentage() > limitPercentage)
+            {
                 message = createBreachMessage( "Buy limit", desk, order, limitPercentage);
                 if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
                 break;
             }
-            if (order.side().equals(TradeSide.SELL) && desk.getSellUtilizationPercentage() > limitPercentage) {
+            if (!order.getSide().equals(Side.BUY) && desk.getSellUtilizationPercentage() > limitPercentage)
+            {
                 message = createBreachMessage( "Sell limit", desk, order, limitPercentage);
                 if(!message.isEmpty()) ampsMessageOutboundProcessor.publishLimitBreach(message);
                 break;
@@ -189,8 +216,10 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
         }
     }
 
-    private String createBreachMessage(String breachType, Desk desk, Order order, int limitPercentage) {
-        try {
+    private String createBreachMessage(String breachType, Desk desk, Order order, int limitPercentage)
+    {
+        try
+        {
             Map<String, Object> breachDetails = new HashMap<>();
 
             breachDetails.put("breachType", breachType);
@@ -199,16 +228,16 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             breachDetails.put("deskId", desk.getId());
             breachDetails.put("deskName", desk.getName());
 
-            breachDetails.put("orderId", order.id());
-            breachDetails.put("traderId", order.traderId());
-            breachDetails.put("traderName", persistenceService.getTrader(order.traderId()).getName());
-            breachDetails.put("symbol", order.symbol());
-            breachDetails.put("side", order.side());
-            breachDetails.put("quantity", order.quantity());
-            breachDetails.put("price", round2dp.apply(order.price()));
-            breachDetails.put("currency", order.currency());
-            breachDetails.put("notionalLocal", round2dp.apply(order.getNotionalValue()));
-            breachDetails.put("tradeTimestamp", order.tradeTimestamp());
+            breachDetails.put("orderId", order.getOrderId());
+            breachDetails.put("traderId", order.getOwnerId());
+            breachDetails.put("traderName", persistenceService.getTrader(UUID.fromString(order.getOwnerId())));
+            breachDetails.put("symbol", order.getInstrumentCode());
+            breachDetails.put("side", order.getSide());
+            breachDetails.put("quantity", order.getQuantity());
+            breachDetails.put("price", round2dp.apply(order.getPrice()));
+            breachDetails.put("currency", order.getSettlementCurrency());
+            breachDetails.put("notionalLocal", round2dp.apply(order.getOrderNotionalValueInLocal()));
+            breachDetails.put("tradeTimestamp", order.getArrivalTime());
 
             breachDetails.put("currentBuyNotional", round2dp.apply(desk.getCurrentBuyNotional()));
             breachDetails.put("currentSellNotional", round2dp.apply(desk.getCurrentSellNotional()));
@@ -222,7 +251,9 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
             breachDetails.put("sellNotionalLimit", desk.getSellNotionalLimit());
             breachDetails.put("grossNotionalLimit", desk.getGrossNotionalLimit());
             return objectMapper.writeValueAsString(breachDetails);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("ERR-882: Failed to create breach message desk: {}", desk, e);
             return "";
         }

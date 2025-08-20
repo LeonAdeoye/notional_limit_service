@@ -6,8 +6,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
-public class NotionalLimitManagementApplication {
-    public static void main(String[] args) {
+public class NotionalLimitManagementApplication
+{
+    public static void main(String[] args)
+    {
         SpringApplication.run(NotionalLimitManagementApplication.class, args);
     }
 } 

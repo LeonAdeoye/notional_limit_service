@@ -7,7 +7,8 @@ import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
-public class InvalidMessageEntry {
+public class InvalidMessageEntry
+{
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.SSS")
     private final LocalDateTime timestamp;
     private final String messageData;

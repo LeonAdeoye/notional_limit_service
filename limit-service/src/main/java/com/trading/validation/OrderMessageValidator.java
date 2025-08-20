@@ -17,53 +17,47 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
-public class OrderMessageValidator {
+public class OrderMessageValidator
+{
     private static final Logger log = LoggerFactory.getLogger(OrderMessageValidator.class);
     private static final String INVALID_MESSAGES_DIR = "invalid_messages";
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
-    
     private final ObjectMapper objectMapper;
     
-    public ValidationResult validateMessage(String messageData) {
+    public ValidationResult validateMessage(String messageData)
+    {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
         
-        try {
-            // Try to parse the message into an Order object
+        try
+        {
             Order order = objectMapper.readValue(messageData, Order.class);
-            
-            // Validate required fields
+
             StringBuilder errors = new StringBuilder();
             
-            if (order.price() <= 0) {
+            if (order.getPrice() <= 0)
                 errors.append("Price must be positive. ");
-            }
             
-            if (order.quantity() <= 0) {
+            if (order.getQuantity() <= 0)
                 errors.append("Quantity must be positive. ");
-            }
             
-            if (order.symbol() == null || order.symbol().trim().isEmpty()) {
+            if (order.getInstrumentCode() == null || order.getInstrumentCode().trim().isEmpty())
                 errors.append("Symbol is required. ");
-            }
             
-            if (order.traderId() == null) {
+            if (order.getOwnerId() == null)
                 errors.append("Trader ID is required. ");
-            }
             
-            if (order.side() == null) {
+            if (order.getSide() == null)
                 errors.append("Trade side is required. ");
-            }
             
-            if (order.tradeTimestamp() == null) {
+            if (order.getArrivalTime() == null)
                 errors.append("Trade timestamp is required. ");
-            }
             
-            if (order.currency() == null) {
+            if (order.getSettlementCurrency() == null)
                 errors.append("Currency is required. ");
-            }
             
-            if (errors.length() > 0) {
+            if (errors.length() > 0)
+            {
                 String errorMessage = errors.toString().trim();
                 log.error("ERR-501: Invalid message format: {}", errorMessage);
                 journalInvalidMessage(messageData, errorMessage);
@@ -72,51 +66,51 @@ public class OrderMessageValidator {
             
             return new ValidationResult(true, null);
             
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             String errorMessage = "Failed to parse message: " + e.getMessage();
             log.error("ERR-502: {}", errorMessage);
             journalInvalidMessage(messageData, errorMessage);
             return new ValidationResult(false, errorMessage);
-        } finally {
+        }
+        finally
+        {
             MDC.remove("errorId");
         }
     }
     
-    private void journalInvalidMessage(String messageData, String errorMessage) {
+    private void journalInvalidMessage(String messageData, String errorMessage)
+    {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
         
-        try {
-            // Create directory if it doesn't exist
+        try
+        {
             Files.createDirectories(Paths.get(INVALID_MESSAGES_DIR));
-            
-            // Create journal entry
-            InvalidMessageEntry entry = new InvalidMessageEntry(
-                LocalDateTime.now(),
-                messageData,
-                errorMessage
-            );
-            
-            // Write to date-specific file
-            String filename = String.format("%s/invalid_messages_%s.json",
-                INVALID_MESSAGES_DIR,
-                LocalDateTime.now().format(DATE_FORMAT));
+            InvalidMessageEntry entry = new InvalidMessageEntry(LocalDateTime.now(), messageData, errorMessage);
+            String filename = String.format("%s/invalid_messages_%s.json", INVALID_MESSAGES_DIR, LocalDateTime.now().format(DATE_FORMAT));
                 
             File file = new File(filename);
             boolean isNewFile = !file.exists();
             
-            try (FileWriter writer = new FileWriter(file, true)) {
-                if (!isNewFile) {
+            try (FileWriter writer = new FileWriter(file, true))
+            {
+                if (!isNewFile)
                     writer.write("\n");
-                }
+
                 writer.write(objectMapper.writeValueAsString(entry));
             }
             
             log.info("Journaled invalid message to file: {}", filename);
             
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("ERR-503: Failed to journal invalid message", e);
-        } finally {
+        }
+        finally
+        {
             MDC.remove("errorId");
         }
     }

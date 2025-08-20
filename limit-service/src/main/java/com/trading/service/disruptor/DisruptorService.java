@@ -1,6 +1,5 @@
 package com.trading.service.disruptor;
 
-
 import com.lmax.disruptor.EventHandler;
 import com.trading.model.Order;
 

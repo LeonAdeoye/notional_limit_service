@@ -8,7 +8,8 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 
 @Component
-public class AmpsMessageOutboundProcessor {
+public class AmpsMessageOutboundProcessor
+{
     private static final Logger log = LoggerFactory.getLogger(AmpsMessageOutboundProcessor.class);
     private Client ampsClient;
     @Value("${amps.server.url}")
@@ -23,26 +24,35 @@ public class AmpsMessageOutboundProcessor {
     private String traderNotionalUpdateTopic;
 
     @PostConstruct
-    public void initialize() throws Exception {
-        try {
+    public void initialize() throws Exception
+    {
+        try
+        {
             ampsClient = new Client(ampsClientName);
             ampsClient.connect(ampsServerUrl);
             ampsClient.logon();
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("ERR-901: Failed to initialize AMPS client for AmpsOutboundProcessor", e);
             throw e;
         }
     }
-    public void publishLimitBreach(String breachMessage) {
-        try {
+    public void publishLimitBreach(String breachMessage)
+    {
+        try
+        {
             ampsClient.publish(limitBreachTopic, breachMessage);
             log.info("Published limit breach message: {}", breachMessage);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("ERR-902: Failed to publish limit breach message: {}", breachMessage, e);
         }
     }
 
-    public void publishDeskNotionalUpdate(String notionalUpdateMessage) {
+    public void publishDeskNotionalUpdate(String notionalUpdateMessage)
+    {
         try {
             ampsClient.publish(deskNotionalUpdateTopic, notionalUpdateMessage);
             log.info("Published desk notional update message: {}", notionalUpdateMessage);
