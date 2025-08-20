@@ -1,6 +1,9 @@
 package com.trading.validation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalTimeDeserializer;
 import com.trading.model.Order;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -11,8 +14,11 @@ import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.UUID;
 
 @Component
@@ -22,7 +28,7 @@ public class OrderMessageValidator
     private static final Logger log = LoggerFactory.getLogger(OrderMessageValidator.class);
     private static final String INVALID_MESSAGES_DIR = "invalid_messages";
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private final ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
     
     public ValidationResult validateMessage(String messageData)
     {
@@ -31,6 +37,13 @@ public class OrderMessageValidator
         
         try
         {
+            objectMapper = new ObjectMapper();
+            DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:mm:ss a", Locale.ENGLISH);
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("M/d/yyyy", Locale.ENGLISH);
+            JavaTimeModule javaTimeModule = new JavaTimeModule();
+            javaTimeModule.addDeserializer(LocalDate.class, new LocalDateDeserializer(dateFormatter));
+            javaTimeModule.addDeserializer(LocalTime.class, new LocalTimeDeserializer(timeFormatter));
+            objectMapper.registerModule(javaTimeModule);
             Order order = objectMapper.readValue(messageData, Order.class);
 
             StringBuilder errors = new StringBuilder();
