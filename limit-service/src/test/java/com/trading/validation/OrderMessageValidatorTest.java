@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trading.model.Currency;
 import com.trading.model.Order;
+import com.trading.model.Side;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -37,7 +39,15 @@ class OrderMessageValidatorTest {
         // Arrange
         UUID id = UUID.randomUUID();
         UUID traderId = UUID.randomUUID();
-        validOrder = new Order(id, traderId, "AAPL", 100, 150.0, TradeSide.BUY, Currency.USD, LocalDateTime.now());
+        validOrder = new Order();
+        validOrder.setOrderId(id.toString());
+        validOrder.setOwnerId(traderId.toString());
+        validOrder.setInstrumentCode("AAPL");
+        validOrder.setQuantity(100);
+        validOrder.setPrice(150.0);
+        validOrder.setSide(Side.BUY);
+        validOrder.setSettlementCurrency(Currency.USD.toString());
+        validOrder.setArrivalTime(LocalTime.now());
         validOrderJson = "{\"valid\":\"json\"}";
     }
 
@@ -50,7 +60,8 @@ class OrderMessageValidatorTest {
      * 4. No error message is returned
      */
     @Test
-    void validateMessage_WithValidOrder_ReturnsValidResult() throws Exception {
+    void validateMessage_WithValidOrder_ReturnsValidResult() throws Exception
+    {
         // Arrange
         when(objectMapper.readValue(anyString(), eq(Order.class))).thenReturn(validOrder);
 
@@ -70,11 +81,20 @@ class OrderMessageValidatorTest {
      * 3. Error message mentions price validation
      */
     @Test
-    void validateMessage_WithNegativePrice_ReturnsInvalidResult() throws Exception {
+    void validateMessage_WithNegativePrice_ReturnsInvalidResult() throws Exception
+    {
         // Arrange
         UUID id = UUID.randomUUID();
         UUID traderId = UUID.randomUUID();
-        validOrder = new Order(id, traderId, "AAPL", 100, -100.0, TradeSide.BUY, Currency.USD, LocalDateTime.now());
+        validOrder = new Order();
+        validOrder.setOrderId(id.toString());
+        validOrder.setOwnerId(traderId.toString());
+        validOrder.setInstrumentCode("AAPL");
+        validOrder.setQuantity(100);
+        validOrder.setPrice(-100);
+        validOrder.setSide(Side.BUY);
+        validOrder.setSettlementCurrency(Currency.USD.toString());
+        validOrder.setArrivalTime(LocalTime.now());
         when(objectMapper.readValue(anyString(), eq(Order.class))).thenReturn(validOrder);
 
         // Act
@@ -93,11 +113,20 @@ class OrderMessageValidatorTest {
      * 3. Error message mentions quantity validation
      */
     @Test
-    void validateMessage_WithZeroQuantity_ReturnsInvalidResult() throws Exception {
+    void validateMessage_WithZeroQuantity_ReturnsInvalidResult() throws Exception
+    {
         // Arrange
         UUID id = UUID.randomUUID();
         UUID traderId = UUID.randomUUID();
-        validOrder = new Order(id, traderId, "AAPL", 0, 500.0, TradeSide.BUY, Currency.USD, LocalDateTime.now());
+        validOrder = new Order();
+        validOrder.setOrderId(id.toString());
+        validOrder.setOwnerId(traderId.toString());
+        validOrder.setInstrumentCode("AAPL");
+        validOrder.setQuantity(0);
+        validOrder.setPrice(150);
+        validOrder.setSide(Side.BUY);
+        validOrder.setSettlementCurrency(Currency.USD.toString());
+        validOrder.setArrivalTime(LocalTime.now());
         when(objectMapper.readValue(anyString(), eq(Order.class))).thenReturn(validOrder);
 
         // Act
@@ -116,11 +145,20 @@ class OrderMessageValidatorTest {
      * 3. Error message mentions required symbol
      */
     @Test
-    void validateMessage_WithNullSymbol_ReturnsInvalidResult() throws Exception {
+    void validateMessage_WithNullSymbol_ReturnsInvalidResult() throws Exception
+    {
         // Arrange
         UUID id = UUID.randomUUID();
         UUID traderId = UUID.randomUUID();
-        validOrder = new Order(id, traderId, null, 100, 150.0, TradeSide.BUY, Currency.USD, LocalDateTime.now());
+        validOrder = new Order();
+        validOrder.setOrderId(id.toString());
+        validOrder.setOwnerId(traderId.toString());
+        validOrder.setInstrumentCode(null);
+        validOrder.setQuantity(0);
+        validOrder.setPrice(150);
+        validOrder.setSide(Side.BUY);
+        validOrder.setSettlementCurrency(Currency.USD.toString());
+        validOrder.setArrivalTime(LocalTime.now());
         when(objectMapper.readValue(anyString(), eq(Order.class))).thenReturn(validOrder);
 
         // Act

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trading.model.Currency;
 import com.trading.model.Order;
+import com.trading.model.Side;
 import com.trading.service.NotionalLimitService;
 import com.trading.validation.OrderMessageValidator;
 import com.trading.validation.ValidationResult;
@@ -19,6 +20,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -62,11 +64,20 @@ class AmpsMessageInboundProcessorTest {
     private String validMessageData;
 
     @BeforeEach
-    void setUp() {
+    void setUp()
+    {
         // Arrange
         UUID traderId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
-        testOrder = new Order(orderId, traderId, "AAPL", 100, 150.0, TradeSide.BUY, Currency.USD, LocalDateTime.now());
+        testOrder = new Order();
+        testOrder.setOrderId(orderId.toString());
+        testOrder.setOwnerId(traderId.toString());
+        testOrder.setInstrumentCode("AAPL");
+        testOrder.setQuantity(0);
+        testOrder.setPrice(150);
+        testOrder.setSide(Side.BUY);
+        testOrder.setSettlementCurrency(Currency.USD.toString());
+        testOrder.setArrivalTime(LocalTime.now());
         validMessageData = "{\"valid\":\"json\"}";
     }
 
