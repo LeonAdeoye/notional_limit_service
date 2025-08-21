@@ -1,6 +1,7 @@
 package com.trading.model;
 
-public enum OrderStates {
+public enum OrderStates
+{
     NEW_ORDER("New Order"),
     PENDING_NEW("Pending New Order"),
     ACCEPTED_BY_OMS("New Order Acknowledged"),

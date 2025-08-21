@@ -1,59 +1,70 @@
 package com.trading.model;
 
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
-@Data
-@Document(collection = "desks")
+@JsonIgnoreProperties(ignoreUnknown = true)
+@Document("Desk")
 public class Desk {
     @Id
-    private UUID id;
-    
-    @NotBlank(message = "Desk name is required")
-    private String name;
-    
-    @Min(value = 0, message = "Buy notional limit must be non-negative")
-    private double buyNotionalLimit;
-    
-    @Min(value = 0, message = "Sell notional limit must be non-negative")
-    private double sellNotionalLimit;
-    
-    @Min(value = 0, message = "Gross notional limit must be non-negative")
-    private double grossNotionalLimit;
-    
-    private double currentBuyNotional;
-    private double currentSellNotional;
-    private double currentGrossNotional;
+    private UUID deskId;
+    private String deskName;
+    private List<UUID> traders;
 
     public Desk() {
+        this.deskId = UUID.randomUUID();
+        this.deskName = "";
+        this.traders = new ArrayList<>();
     }
 
-    public Desk(UUID id, String test_desk) {
-        this.id = id;
-        this.name = test_desk;
+    public UUID getDeskId() {
+        return deskId;
     }
 
-    public Desk(UUID deskId, String name, double buyNotionalLimit, double sellNotionalLimit, double grossNotionalLimit) {
-        this.id = deskId;
-        this.name = name;
-        this.buyNotionalLimit = buyNotionalLimit;
-        this.sellNotionalLimit = sellNotionalLimit;
-        this.grossNotionalLimit = grossNotionalLimit;
+    public void setDeskId(UUID deskId) {
+        this.deskId = deskId;
     }
-    
-    public double getBuyUtilizationPercentage() {
-        return (currentBuyNotional / buyNotionalLimit) * 100;
+
+    public String getDeskName() {
+        return deskName;
     }
-    
-    public double getSellUtilizationPercentage() {
-        return (currentSellNotional / sellNotionalLimit) * 100;
+
+    public void setDeskName(String deskName) {
+        this.deskName = deskName;
     }
-    
-    public double getGrossUtilizationPercentage() {
-        return (currentGrossNotional / grossNotionalLimit) * 100;
+
+    public List<UUID> getTraders() {
+        return traders;
     }
-} 
+
+    public void setTraders(List<UUID> traders) {
+        this.traders = traders;
+    }
+
+    @Override
+    public String toString() {
+        return "Desk{" +
+                "deskId=" + deskId +
+                ", deskName='" + deskName + '\'' +
+                ", traders=" + traders +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Desk)) return false;
+        Desk desk = (Desk) o;
+        return deskId.equals(desk.deskId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getDeskId(), getDeskName(), getTraders());
+    }
+}

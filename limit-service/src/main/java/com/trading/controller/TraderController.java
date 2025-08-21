@@ -1,6 +1,6 @@
 package com.trading.controller;
 
-import com.trading.model.Trader;
+import com.trading.model.TraderNotionalLimit;
 import com.trading.service.TradingPersistenceService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -17,114 +17,113 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/traders")
+@RequestMapping("/traders")
 @RequiredArgsConstructor
 @Validated
 public class TraderController {
     private static final Logger log = LoggerFactory.getLogger(TraderController.class);
     @Autowired
     private final TradingPersistenceService persistenceService;
-
-    @PostMapping
-    public ResponseEntity<Trader> createTrader(@Valid @RequestBody Trader trader) {
-        String errorId = UUID.randomUUID().toString();
-        MDC.put("errorId", errorId);
-        
-        try {
-            if (trader.getId() != null && persistenceService.traderExists(trader.getId())) {
-                log.error("ERR-401: Trader already exists with ID: {}", trader.getId());
-                return ResponseEntity.badRequest().build();
-            }
-            
-            if (!persistenceService.deskExists(trader.getDeskId())) {
-                log.error("ERR-402: Referenced desk not found with ID: {}", trader.getDeskId());
-                return ResponseEntity.badRequest().build();
-            }
-
-            Trader savedTrader = persistenceService.saveTrader(new Trader(trader.getName(), trader.getDeskId()));
-            log.info("Successfully created trader with ID: {} for desk: {}", 
-                    savedTrader.getId(), savedTrader.getDeskId());
-            return new ResponseEntity<Trader>(savedTrader, HttpStatus.CREATED);
-        } catch (Exception e) {
-            log.error("ERR-403: Unexpected error creating trader", e);
-            return ResponseEntity.internalServerError().build();
-        } finally {
-            MDC.remove("errorId");
-        }
-    }
     
     @GetMapping("/{id}")
-    public ResponseEntity<Trader> getTrader(@NotNull @PathVariable UUID id) {
+    public ResponseEntity<TraderNotionalLimit> getTrader(@NotNull @PathVariable UUID id)
+    {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
         
-        try {
-            Trader trader = persistenceService.getTrader(id);
-            if (trader == null) {
+        try
+        {
+            TraderNotionalLimit trader = persistenceService.getTraderNotionalLimit(id);
+            if (trader == null)
+            {
                 log.error("ERR-404: Trader not found with ID: {}", id);
                 return ResponseEntity.notFound().build();
             }
             return ResponseEntity.ok(trader);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("ERR-405: Error retrieving trader: {}", id, e);
             return ResponseEntity.internalServerError().build();
-        } finally {
+        }
+        finally
+        {
             MDC.remove("errorId");
         }
     }
 
     @GetMapping()
-    public ResponseEntity<List<Trader>> getTraders() {
+    public ResponseEntity<List<TraderNotionalLimit>> getAllTradersNotionalLimits()
+    {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
 
-        try {
-            List<Trader> traders = persistenceService.getAllTraders();
+        try
+        {
+            List<TraderNotionalLimit> traders = persistenceService.getAllTraderNotionalLimits();
             return ResponseEntity.ok(traders);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("ERR-405: Error retrieving all traders.", e);
             return ResponseEntity.internalServerError().build();
-        } finally {
+        }
+        finally
+        {
             MDC.remove("errorId");
         }
     }
     
     @GetMapping("/desk/{deskId}")
-    public ResponseEntity<List<Trader>> getTradersByDesk(@NotNull @PathVariable UUID deskId) {
+    public ResponseEntity<List<TraderNotionalLimit>> getDeskTraderNotionalLimitsByDeskId(@NotNull @PathVariable UUID deskId)
+    {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
         
-        try {
-            if (!persistenceService.deskExists(deskId)) {
+        try
+        {
+            if (!persistenceService.deskNotionalLimitExists(deskId))
+            {
                 log.error("ERR-406: Desk not found for trader lookup: {}", deskId);
                 return ResponseEntity.notFound().build();
             }
-            return ResponseEntity.ok(persistenceService.getDeskTraders(deskId));
-        } catch (Exception e) {
+            return ResponseEntity.ok(persistenceService.getDeskTraderNotionalLimits(deskId));
+        }
+        catch (Exception e)
+        {
             log.error("ERR-407: Error retrieving traders for desk: {}", deskId, e);
             return ResponseEntity.internalServerError().build();
-        } finally {
+        }
+        finally
+        {
             MDC.remove("errorId");
         }
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTrader(@NotNull @PathVariable UUID id) {
+    public ResponseEntity<Void> deleteTrader(@NotNull @PathVariable UUID id)
+    {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
         
-        try {
-            if (!persistenceService.traderExists(id)) {
+        try
+        {
+            if (!persistenceService.traderNotionalLimitExists(id))
+            {
                 log.error("ERR-408: Trader not found for deletion: {}", id);
                 return ResponseEntity.notFound().build();
             }
-            persistenceService.deleteTrader(id);
+            persistenceService.deleteTraderNotionalLimit(id);
             log.info("Successfully deleted trader: {}", id);
             return ResponseEntity.ok().build();
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("ERR-409: Error deleting trader: {}", id, e);
             return ResponseEntity.internalServerError().build();
-        } finally {
+        }
+        finally
+        {
             MDC.remove("errorId");
         }
     }

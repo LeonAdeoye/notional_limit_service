@@ -1,9 +1,13 @@
 package com.trading.service;
 
-import com.trading.model.Trader;
-import com.trading.repository.DeskRepository;
-import com.trading.repository.TraderRepository;
 import com.trading.model.Desk;
+import com.trading.model.DeskNotionalLimit;
+import com.trading.model.Trader;
+import com.trading.model.TraderNotionalLimit;
+import com.trading.repository.DeskNotionalLimitRepository;
+import com.trading.repository.DeskRepository;
+import com.trading.repository.TraderNotionalLimitRepository;
+import com.trading.repository.TraderRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,154 +15,201 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import java.util.ArrayList;
 
 
 @Service
 @RequiredArgsConstructor
-public class TradingPersistenceService {
+public class TradingPersistenceService
+{
     private static final Logger log = LoggerFactory.getLogger(TradingPersistenceService.class);
-
+    @Autowired
+    private final DeskNotionalLimitRepository deskNotionalLimitRepository;
     @Autowired
     private final DeskRepository deskRepository;
     @Autowired
     private final TraderRepository traderRepository;
-    
-    // In-memory caches
-    private final Map<UUID, Desk> deskCache = new ConcurrentHashMap<>();
-    private final Map<UUID, Trader> traderCache = new ConcurrentHashMap<>();
-    private final Map<UUID, List<Trader>> deskTradersCache = new ConcurrentHashMap<>();
+    @Autowired
+    private final TraderNotionalLimitRepository traderNotionalLimitRepository;
+    private final Map<UUID, DeskNotionalLimit> deskNotionalLimitCache = new ConcurrentHashMap<>();
+    private final Map<UUID, TraderNotionalLimit> traderNotionalLimitCache = new ConcurrentHashMap<>();
+    private final Map<UUID, List<TraderNotionalLimit>> deskTradersCache = new ConcurrentHashMap<>();
+    private Map<UUID, Desk> desksCache = new ConcurrentHashMap<>();
+    private Map<UUID, Trader> tradersCache = new ConcurrentHashMap<>();
     
     @PostConstruct
-    public void initializeCaches() {
+    public void initializeCaches()
+    {
         log.info("Initializing trading data caches from MongoDB");
-        try {
+        try
+        {
             List<Desk> desks = deskRepository.findAll();
-            deskCache.clear();
-            desks.forEach(desk -> {
-                deskCache.put(desk.getId(), desk);
-                log.info("Loaded desk: {} into cache", desk);
-            });
-            log.info("Loaded {} desks into cache", desks.size());
+            desks.forEach(desk -> desksCache.put(desk.getDeskId(), desk));
 
             List<Trader> traders = traderRepository.findAll();
-            traderCache.clear();
-            traders.forEach(trader -> {
-                traderCache.put(trader.getId(), trader);
-                log.info("Loaded trader: {} into cache", trader);
-            });
+            traders.forEach(trader -> tradersCache.put(trader.getTraderId(), trader));
 
-            deskTradersCache.clear();
-            deskTradersCache.putAll(traders.stream()
-                .collect(Collectors.groupingBy(Trader::getDeskId)));
-            log.info("Loaded {} traders into cache", traders.size());
-            
-        } catch (Exception e) {
+            List<DeskNotionalLimit> deskNotionalLimits = deskNotionalLimitRepository.findAll();
+            deskNotionalLimits.forEach(deskNotionalLimit -> deskNotionalLimitCache.put(deskNotionalLimit.getDeskId(), deskNotionalLimit));
+
+            List<TraderNotionalLimit> tradersNotionalLimits = traderNotionalLimitRepository.findAll();
+            tradersNotionalLimits.forEach(traderNotionalLimit -> traderNotionalLimitCache.put(traderNotionalLimit.getTraderId(), traderNotionalLimit));
+
+            deskTradersCache.putAll(tradersNotionalLimits.stream().collect(Collectors.groupingBy(TraderNotionalLimit::getTraderId)));
+        }
+        catch (Exception e)
+        {
             log.error("ERR-201: Failed to initialize caches from MongoDB", e);
             throw new RuntimeException("Failed to initialize trading data", e);
         }
     }
     
     @Transactional
-    public Desk saveDesk(Desk desk) {
-        try {
-            Desk savedDesk = deskRepository.save(desk);
-            deskCache.put(savedDesk.getId(), savedDesk);
-            log.info("Saved desk with ID: {} to MongoDB and cache", savedDesk.getId());
-            return savedDesk;
-        } catch (Exception e) {
-            log.error("ERR-202: Failed to save desk: {}", desk.getId(), e);
+    public DeskNotionalLimit saveDeskNotional(DeskNotionalLimit deskNotionalLimit)
+    {
+        try
+        {
+            DeskNotionalLimit savedDeskNotionalLimit = deskNotionalLimitRepository.save(deskNotionalLimit);
+            deskNotionalLimitCache.put(savedDeskNotionalLimit.getDeskId(), savedDeskNotionalLimit);
+            log.info("Saved desk notional with ID: {} to MongoDB and cache", savedDeskNotionalLimit.getDeskId());
+            return savedDeskNotionalLimit;
+        }
+        catch (Exception e)
+        {
+            log.error("ERR-202: Failed to save desk: {}", deskNotionalLimit.getDeskId(), e);
             throw e;
         }
     }
     
     @Transactional
-    public Trader saveTrader(Trader trader) {
-        try {
-            Trader savedTrader = traderRepository.save(trader);
-            traderCache.put(savedTrader.getId(), savedTrader);
-            
-            // Update desk-traders cache
-            deskTradersCache.computeIfAbsent(savedTrader.getDeskId(), k -> new java.util.ArrayList<>())
-                .add(savedTrader);
-            
-            log.info("Saved trader with ID: {} to MongoDB and cache", savedTrader.getId());
-            return savedTrader;
-        } catch (Exception e) {
-            log.error("ERR-203: Failed to save trader: {}", trader.getId(), e);
+    public TraderNotionalLimit saveTraderNotional(TraderNotionalLimit traderNotionalLimit)
+    {
+        try
+        {
+            TraderNotionalLimit savedTraderNotionalLimit = traderNotionalLimitRepository.save(traderNotionalLimit);
+            traderNotionalLimitCache.put(savedTraderNotionalLimit.getTraderId(), savedTraderNotionalLimit);
+            deskTradersCache.computeIfAbsent(savedTraderNotionalLimit.getTraderId(), k -> new java.util.ArrayList<>()).add(savedTraderNotionalLimit);
+            log.info("Saved trader notional with ID: {} to MongoDB and cache", savedTraderNotionalLimit.getTraderId());
+            return savedTraderNotionalLimit;
+        }
+        catch (Exception e)
+        {
+            log.error("ERR-203: Failed to save trader: {}", traderNotionalLimit.getTraderId(), e);
             throw e;
         }
     }
     
     @Transactional
-    public void deleteDesk(UUID deskId) {
-        try {
-            deskRepository.deleteById(deskId);
-            deskCache.remove(deskId);
+    public void deleteDeskNotionalLimit(UUID deskId)
+    {
+        try
+        {
+            deskNotionalLimitRepository.deleteById(deskId);
+            deskNotionalLimitCache.remove(deskId);
             deskTradersCache.remove(deskId);
             log.info("Deleted desk and its limits with ID: {} from MongoDB and cache", deskId);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("ERR-204: Failed to delete desk: {}", deskId, e);
             throw e;
         }
     }
     
     @Transactional
-    public void deleteTrader(UUID traderId) {
-        try {
-            Trader trader = traderCache.get(traderId);
-            if (trader != null) {
-                deskTradersCache.getOrDefault(trader.getDeskId(), new java.util.ArrayList<>())
-                    .removeIf(t -> t.getId().equals(traderId));
+    public void deleteTraderNotionalLimit(UUID traderId)
+    {
+        try
+        {
+            TraderNotionalLimit trader = traderNotionalLimitCache.get(traderId);
+            if (trader != null)
+            {
+                deskTradersCache.getOrDefault(trader.getTraderId(), new java.util.ArrayList<>())
+                    .removeIf(t -> t.getTraderId().equals(traderId));
             }
             
-            traderRepository.deleteById(traderId);
-            traderCache.remove(traderId);
+            traderNotionalLimitRepository.deleteById(traderId);
+            traderNotionalLimitCache.remove(traderId);
             log.info("Deleted trader with ID: {} from MongoDB and cache", traderId);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("ERR-205: Failed to delete trader: {}", traderId, e);
             throw e;
         }
     }
     
-    public Desk getDesk(UUID deskId) {
-        return deskCache.get(deskId);
+    public DeskNotionalLimit getDeskNotionalLimit(UUID deskId)
+    {
+        return deskNotionalLimitCache.get(deskId);
     }
     
-    public Trader getTrader(UUID traderId) {
-        return traderCache.get(traderId);
+    public TraderNotionalLimit getTraderNotionalLimit(UUID traderId)
+    {
+        return traderNotionalLimitCache.get(traderId);
     }
     
-    public List<Trader> getDeskTraders(UUID deskId) {
+    public List<TraderNotionalLimit> getDeskTraderNotionalLimits(UUID deskId)
+    {
         return deskTradersCache.getOrDefault(deskId, new java.util.ArrayList<>());
     }
     
-    public boolean deskExists(UUID deskId) {
-        return deskCache.containsKey(deskId);
+    public boolean deskNotionalLimitExists(UUID deskId)
+    {
+        return deskNotionalLimitCache.containsKey(deskId);
     }
     
-    public boolean traderExists(UUID traderId) {
-        return traderCache.containsKey(traderId);
+    public boolean traderNotionalLimitExists(UUID traderId)
+    {
+        return traderNotionalLimitCache.containsKey(traderId);
     }
     
-    public List<Desk> getAllDesks() {
-        return new ArrayList<>(deskCache.values());
+    public List<DeskNotionalLimit> getAllDeskNotionalLimits()
+    {
+        return new ArrayList<>(deskNotionalLimitCache.values());
     }
     
-    public boolean hasTradersForDesk(UUID deskId) {
-        return !getDeskTraders(deskId).isEmpty();
+    public boolean hasTradersForDesk(UUID deskId)
+    {
+        return !getDeskTraderNotionalLimits(deskId).isEmpty();
     }
 
-    public List<Trader> getAllTraders() {
-        return new ArrayList<>(traderCache.values());
+    public List<TraderNotionalLimit> getAllTraderNotionalLimits()
+    {
+        return new ArrayList<>(traderNotionalLimitCache.values());
     }
 
-    public Desk getDeskById(UUID deskId) {
-        return deskCache.get(deskId);
+    public DeskNotionalLimit getDeskNotionalLimitById(UUID deskId)
+    {
+        return deskNotionalLimitCache.get(deskId);
     }
+
+    public Trader getTraderById(UUID traderId)
+    {
+        return tradersCache.get(traderId);
+    }
+
+    public Desk getDeskById(UUID deskId)
+    {
+        return desksCache.get(deskId);
+    }
+
+    public Optional<Desk> findDeskByTraderId(UUID traderId)
+    {
+        return desksCache.values().stream().filter(desk -> desk.getTraders().contains(traderId)).findFirst();
+    }
+
+    public String findTraderFullNameByUserId(String userId)
+    {
+        for (Trader trader : tradersCache.values())
+        {
+            if (trader.getUserId().equals(userId))
+                return trader.getFirstName() + " " + trader.getLastName();
+        }
+
+        return userId;
+    }
+
 }

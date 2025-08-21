@@ -13,13 +13,8 @@ import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.trading.model.Currency;
 
-/**
- * REST Controller for managing FX rates.
- * Provides endpoints for querying and updating currency exchange rates.
- * Supports both bulk and individual rate updates.
- */
 @RestController
-@RequestMapping("/api/v1/currency")
+@RequestMapping("currency")
 @RequiredArgsConstructor
 public class CurrencyController {
     private static final Logger log = LoggerFactory.getLogger(CurrencyController.class);
@@ -27,11 +22,6 @@ public class CurrencyController {
     @Autowired
     private final CurrencyManager currencyManager;
     
-    /**
-     * Retrieves all current FX rates.
-     * 
-     * @return Map of currency codes to their USD exchange rates
-     */
     @GetMapping("/rates")
     public ResponseEntity<Map<Currency, Double>> getCurrentRates() {
         String errorId = UUID.randomUUID().toString();
@@ -46,13 +36,7 @@ public class CurrencyController {
             MDC.remove("errorId");
         }
     }
-    
-    /**
-     * Updates multiple FX rates in bulk.
-     * 
-     * @param rates Map of currency codes to their new USD exchange rates
-     * @return 200 OK if successful, 500 if update fails
-     */
+
     @PostMapping("/rates")
     public ResponseEntity<Void> updateRates(@Valid @RequestBody Map<Currency, Double> rates) {
         String errorId = UUID.randomUUID().toString();
