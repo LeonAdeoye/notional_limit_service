@@ -8,6 +8,4 @@ import java.util.UUID;
 
 @Repository
 public interface TraderNotionalLimitRepository extends MongoRepository<TraderNotionalLimit, UUID> {
-    List<TraderNotionalLimit> findByDeskId(UUID deskId);
-    boolean existsByDeskId(UUID deskId);
 } 

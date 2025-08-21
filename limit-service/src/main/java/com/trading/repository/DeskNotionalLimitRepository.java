@@ -7,5 +7,4 @@ import java.util.UUID;
 
 @Repository
 public interface DeskNotionalLimitRepository extends MongoRepository<DeskNotionalLimit, UUID> {
-    DeskNotionalLimit findByName(String name);
 } 
