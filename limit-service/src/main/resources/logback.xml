@@ -22,12 +22,10 @@
         </encoder>
     </appender>
 
-    <!-- Set default logging level to INFO -->
     <root level="WARN">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </root>
 
-    <!-- Enable logging for our application packages -->
     <logger name="com.trading" level="INFO"/>
 </configuration> 

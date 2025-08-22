@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import javax.validation.constraints.NotNull;
 import java.util.List;
 import java.util.UUID;
@@ -52,7 +51,7 @@ public class DeskNotionalLimitController
 
     @CrossOrigin
     @GetMapping("/{id}")
-    public ResponseEntity<DeskNotionalLimit> getDesk(@NotNull @PathVariable UUID id)
+    public ResponseEntity<DeskNotionalLimit> getDeskNotionalLimit(@NotNull @PathVariable UUID id)
     {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
@@ -62,14 +61,14 @@ public class DeskNotionalLimitController
             DeskNotionalLimit deskNotionalLimit = tradingPersistenceService.getDeskNotionalLimit(id);
             if (deskNotionalLimit == null)
             {
-                log.error("ERR-413: Desk not found with ID: {}", id);
+                log.error("ERR-413: Desk notional limit not found with ID: {}", id);
                 return ResponseEntity.notFound().build();
             }
             return ResponseEntity.ok(deskNotionalLimit);
         }
         catch (Exception e)
         {
-            log.error("ERR-414: Error retrieving desk: {}", id, e);
+            log.error("ERR-414: Error retrieving desk notional limit with ID: {}", id, e);
             return ResponseEntity.internalServerError().build();
         }
         finally
@@ -91,7 +90,7 @@ public class DeskNotionalLimitController
         }
         catch (Exception e)
         {
-            log.error("ERR-415: Error retrieving all desks", e);
+            log.error("ERR-415: Error retrieving all desk notional limits", e);
             return ResponseEntity.internalServerError().build();
         }
         finally
@@ -111,21 +110,21 @@ public class DeskNotionalLimitController
         {
             if (!tradingPersistenceService.deskNotionalLimitExists(id))
             {
-                log.error("ERR-416: Desk not found for deletion: {}", id);
+                log.error("ERR-416: Desk notional limit not found for deletion: {}", id);
                 return ResponseEntity.notFound().build();
             }
             if (tradingPersistenceService.hasTradersForDesk(id))
             {
-                log.error("ERR-417: Cannot delete desk with ID: {} as it has associated traders", id);
+                log.error("ERR-417: Cannot delete desk notional limit with ID: {} as it has associated traders", id);
                 return ResponseEntity.badRequest().build();
             }
             tradingPersistenceService.deleteDeskNotionalLimit(id);
-            log.info("Successfully deleted desk: {}", id);
+            log.info("Successfully deleted desk notional limit with: {}", id);
             return ResponseEntity.ok().build();
         }
         catch (Exception e)
         {
-            log.error("ERR-418: Error deleting desk: {}", id, e);
+            log.error("ERR-418: Error deleting desk notional limit: {}", id, e);
             return ResponseEntity.internalServerError().build();
         }
         finally
