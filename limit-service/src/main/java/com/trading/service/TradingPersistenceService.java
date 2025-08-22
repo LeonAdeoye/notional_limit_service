@@ -47,17 +47,22 @@ public class TradingPersistenceService
         {
             List<Desk> desks = deskRepository.findAll();
             desks.forEach(desk -> desksCache.put(desk.getDeskId(), desk));
+            log.info("Loaded {} desks from MongoDB", desks.size());
 
             List<Trader> traders = traderRepository.findAll();
             traders.forEach(trader -> tradersCache.put(trader.getTraderId(), trader));
+            log.info("Loaded {} traders from MongoDB", traders.size());
 
             List<DeskNotionalLimit> deskNotionalLimits = deskNotionalLimitRepository.findAll();
             deskNotionalLimits.forEach(deskNotionalLimit -> deskNotionalLimitCache.put(deskNotionalLimit.getDeskId(), deskNotionalLimit));
+            log.info("Loaded {} desk notional limits from MongoDB", deskNotionalLimits.size());
 
             List<TraderNotionalLimit> tradersNotionalLimits = traderNotionalLimitRepository.findAll();
             tradersNotionalLimits.forEach(traderNotionalLimit -> traderNotionalLimitCache.put(traderNotionalLimit.getTraderId(), traderNotionalLimit));
+            log.info("Loaded {} trader notional limits from MongoDB", tradersNotionalLimits.size());
 
             deskTradersCache.putAll(tradersNotionalLimits.stream().collect(Collectors.groupingBy(TraderNotionalLimit::getTraderId)));
+            log.info("Initialized desk traders cache with {} entries", deskTradersCache.size());
         }
         catch (Exception e)
         {
@@ -67,7 +72,7 @@ public class TradingPersistenceService
     }
     
     @Transactional
-    public DeskNotionalLimit saveDeskNotional(DeskNotionalLimit deskNotionalLimit)
+    public DeskNotionalLimit saveDeskNotionalLimit(DeskNotionalLimit deskNotionalLimit)
     {
         try
         {
@@ -84,7 +89,7 @@ public class TradingPersistenceService
     }
     
     @Transactional
-    public TraderNotionalLimit saveTraderNotional(TraderNotionalLimit traderNotionalLimit)
+    public TraderNotionalLimit saveTraderNotionalLimit(TraderNotionalLimit traderNotionalLimit)
     {
         try
         {
@@ -210,6 +215,11 @@ public class TradingPersistenceService
         }
 
         return userId;
+    }
+
+    public Optional<Trader> findTraderByUserId(String userId)
+    {
+        return tradersCache.values().stream().filter(trader -> trader.getUserId().equals(userId)).findFirst();
     }
 
 }

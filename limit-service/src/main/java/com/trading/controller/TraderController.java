@@ -24,9 +24,10 @@ public class TraderController {
     private static final Logger log = LoggerFactory.getLogger(TraderController.class);
     @Autowired
     private final TradingPersistenceService persistenceService;
-    
+
+    @CrossOrigin
     @GetMapping("/{id}")
-    public ResponseEntity<TraderNotionalLimit> getTrader(@NotNull @PathVariable UUID id)
+    public ResponseEntity<TraderNotionalLimit> getTraderNotionalLimit(@NotNull @PathVariable UUID id)
     {
         String errorId = UUID.randomUUID().toString();
         MDC.put("errorId", errorId);
@@ -52,6 +53,7 @@ public class TraderController {
         }
     }
 
+    @CrossOrigin
     @GetMapping()
     public ResponseEntity<List<TraderNotionalLimit>> getAllTradersNotionalLimits()
     {
@@ -73,7 +75,8 @@ public class TraderController {
             MDC.remove("errorId");
         }
     }
-    
+
+    @CrossOrigin
     @GetMapping("/desk/{deskId}")
     public ResponseEntity<List<TraderNotionalLimit>> getDeskTraderNotionalLimitsByDeskId(@NotNull @PathVariable UUID deskId)
     {
@@ -99,7 +102,8 @@ public class TraderController {
             MDC.remove("errorId");
         }
     }
-    
+
+    @CrossOrigin
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTrader(@NotNull @PathVariable UUID id)
     {

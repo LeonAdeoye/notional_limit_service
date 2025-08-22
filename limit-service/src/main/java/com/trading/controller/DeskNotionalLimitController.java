@@ -11,21 +11,46 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import javax.validation.Valid;
+
 import javax.validation.constraints.NotNull;
 import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("desks")
+@RequestMapping("/desks")
 @RequiredArgsConstructor
 @Validated
-public class DeskController
+public class DeskNotionalLimitController
 {
-    private static final Logger log = LoggerFactory.getLogger(DeskController.class);
+    private static final Logger log = LoggerFactory.getLogger(DeskNotionalLimitController.class);
     @Autowired
     private final TradingPersistenceService tradingPersistenceService;
 
+    @CrossOrigin
+    @PostMapping
+    public ResponseEntity<DeskNotionalLimit> saveDeskNotionalLimit(@RequestBody DeskNotionalLimit deskNotionalLimit)
+    {
+        String errorId = UUID.randomUUID().toString();
+        MDC.put("errorId", errorId);
+
+        try
+        {
+            DeskNotionalLimit savedDesk = tradingPersistenceService.saveDeskNotionalLimit(deskNotionalLimit);
+            log.info("Successfully saved desk: {}", savedDesk.getDeskId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedDesk);
+        }
+        catch (Exception e)
+        {
+            log.error("ERR-412: Error saving desk", e);
+            return ResponseEntity.internalServerError().build();
+        }
+        finally
+        {
+            MDC.remove("errorId");
+        }
+    }
+
+    @CrossOrigin
     @GetMapping("/{id}")
     public ResponseEntity<DeskNotionalLimit> getDesk(@NotNull @PathVariable UUID id)
     {
@@ -52,7 +77,8 @@ public class DeskController
             MDC.remove("errorId");
         }
     }
-    
+
+    @CrossOrigin
     @GetMapping
     public ResponseEntity<List<DeskNotionalLimit>> getAllDesks()
     {
@@ -73,7 +99,8 @@ public class DeskController
             MDC.remove("errorId");
         }
     }
-    
+
+    @CrossOrigin
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDesk(@NotNull @PathVariable UUID id)
     {

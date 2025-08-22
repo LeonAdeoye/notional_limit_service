@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -49,24 +50,38 @@ public class OrderEventHandler implements EventHandler<OrderEvent>
 
     private void processOrder(Order order)
     {
-        TraderNotionalLimit trader = persistenceService.getTraderNotionalLimit(UUID.fromString(order.getOwnerId()));
-        if (trader == null)
+        Optional<Trader> trader = persistenceService.findTraderByUserId(order.getOwnerId());
+        if (!trader.isPresent())
         {
-            log.error("ERR-884: Trader not found with ID: {}", order.getOwnerId());
-            throw new IllegalArgumentException("Trader not found");
+            log.error("ERR-883: Trader not found with ID: {}", order.getOwnerId());
+            throw new IllegalArgumentException("Trader not found with id: " + order.getOwnerId());
         }
 
-        DeskNotionalLimit deskNotionalLimit = persistenceService.getDeskNotionalLimit(trader.getTraderId());
+        TraderNotionalLimit traderNotionalLimit = persistenceService.getTraderNotionalLimit(trader.get().getTraderId());
+        if (traderNotionalLimit == null)
+        {
+            log.error("ERR-884: Trader notional limit not found with ID: {}", order.getOwnerId());
+            throw new IllegalArgumentException("Trader notional limit not found with trader Id: " + trader.get().getTraderId());
+        }
+
+        Optional<Desk> desk = persistenceService.findDeskByTraderId(traderNotionalLimit.getTraderId());
+        if (!desk.isPresent())
+        {
+            log.error("ERR-886: Desk not found for trader ID: {}", traderNotionalLimit.getTraderId());
+            throw new IllegalArgumentException("Desk not found for trader Id: " + traderNotionalLimit.getTraderId());
+        }
+
+        DeskNotionalLimit deskNotionalLimit = persistenceService.getDeskNotionalLimit(desk.get().getDeskId());
         if (deskNotionalLimit == null)
         {
-            log.error("ERR-885: Desk not found with ID: {}", trader.getTraderId());
-            throw new IllegalArgumentException("Desk not found");
+            log.error("ERR-885: Desk notional limit not found with ID: {}", desk.get().getDeskId());
+            throw new IllegalArgumentException("Desk notional limit not found with Id: " + desk.get().getDeskId());
         }
 
         double notionalValueUSD = calculateUSDNotional(order);
-        checkSideNotionalLimit(trader, deskNotionalLimit, order, notionalValueUSD);
-        checkGrossNotionalLimit(trader, deskNotionalLimit, order, notionalValueUSD);
-        publishTraderNotionalUpdate(trader, order.getSide(), notionalValueUSD);
+        checkSideNotionalLimit(traderNotionalLimit, deskNotionalLimit, order, notionalValueUSD);
+        checkGrossNotionalLimit(traderNotionalLimit, deskNotionalLimit, order, notionalValueUSD);
+        publishTraderNotionalUpdate(traderNotionalLimit, order.getSide(), notionalValueUSD);
         publishDeskNotionalUpdate(deskNotionalLimit, order.getSide(), notionalValueUSD);
     }
 
